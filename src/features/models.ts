@@ -1,7 +1,6 @@
 import { z } from 'zod';
 
 export const ParseStatusSchema = z.enum(['success', 'partial', 'failed']);
-export type ParseStatus = z.infer<typeof ParseStatusSchema>;
 
 export type ParserResult<T> =
   | { status: 'success'; data: T; warnings: string[] }
@@ -30,7 +29,6 @@ export const ScriptDomLocationSchema = z.object({
   scriptIndex: z.number().int().nonnegative(),
   inHead: z.boolean(),
 });
-export type ScriptDomLocation = z.infer<typeof ScriptDomLocationSchema>;
 
 export const ScriptLoadEvidenceSchema = z.object({
   kind: z.enum([
@@ -56,7 +54,6 @@ export const PlatformLoaderConfigSchema = z.object({
   platformConfig: z.record(z.string(), z.string()).optional(),
 });
 export type PlatformLoaderConfig = z.infer<typeof PlatformLoaderConfigSchema>;
-export const OracleCxTagConfigSchema = PlatformLoaderConfigSchema;
 export type OracleCxTagConfig = PlatformLoaderConfig;
 
 export const PlatformLoaderObservationSchema = z.object({
@@ -76,11 +73,9 @@ export const PlatformLoaderObservationSchema = z.object({
   detectedAt: z.string(),
 });
 export type PlatformLoaderObservation = z.infer<typeof PlatformLoaderObservationSchema>;
-export const OracleCxTagLoaderSchema = PlatformLoaderObservationSchema;
 export type OracleCxTagLoader = PlatformLoaderObservation;
 
 export const TagManagerTypeSchema = z.enum(['google-tag-manager', 'tealium-iq', 'adobe-tags']);
-export type TagManagerType = z.infer<typeof TagManagerTypeSchema>;
 
 export const TagManagerObservationSchema = z.object({
   id: z.string(),
@@ -117,7 +112,6 @@ export const InfinityEventKindSchema = z.enum([
   'dcapi-batch',
   'unknown',
 ]);
-export type InfinityEventKind = z.infer<typeof InfinityEventKindSchema>;
 
 export const PlatformEventKindSchema = z.string().min(1).max(100);
 export type PlatformEventKind = z.infer<typeof PlatformEventKindSchema>;
@@ -197,7 +191,6 @@ export const PlatformNetworkObservationSchema = z.object({
     .optional(),
 });
 export type PlatformNetworkObservation = z.infer<typeof PlatformNetworkObservationSchema>;
-export const OracleNetworkObservationSchema = PlatformNetworkObservationSchema;
 export type OracleNetworkObservation = PlatformNetworkObservation;
 
 export const ParsedDcsGifEventSchema = z.object({
@@ -212,7 +205,6 @@ export const ParsedDcApiEventSchema = z.object({
   parameters: z.record(z.string(), z.string().nullable()),
   origins: z.record(z.string(), z.enum(['dcapi-static', 'dcapi-event'])),
 });
-export type ParsedDcApiEvent = z.infer<typeof ParsedDcApiEventSchema>;
 
 export const ParsedDcApiRequestSchema = z.object({
   staticParameters: z.record(z.string(), z.string().nullable()),
@@ -354,7 +346,6 @@ export const InfinityLibrarySummarySchema = z.object({
   issues: z.array(z.string()),
 });
 export type InfinityLibrarySummary = z.infer<typeof InfinityLibrarySummarySchema>;
-export const PlatformLibrarySummarySchema = InfinityLibrarySummarySchema;
 export type PlatformLibrarySummary = InfinityLibrarySummary;
 
 export const InfinitySupportTrafficSummarySchema = z.object({
@@ -368,7 +359,6 @@ export const InfinitySupportTrafficSummarySchema = z.object({
   issues: z.array(z.string()),
 });
 export type InfinitySupportTrafficSummary = z.infer<typeof InfinitySupportTrafficSummarySchema>;
-export const PlatformSupportTrafficSummarySchema = InfinitySupportTrafficSummarySchema;
 export type PlatformSupportTrafficSummary = InfinitySupportTrafficSummary;
 
 export const ExportedDiagnosticReportSchema = z.object({

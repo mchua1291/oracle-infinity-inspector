@@ -7,6 +7,8 @@ All notable changes to Oracle Infinity Inspector are documented here.
 ### Changed
 
 - Browser documentation now distinguishes verified Microsoft Edge support, expected Google Chrome compatibility, best-effort support for other Chromium browsers, and unsupported Firefox/Safari architectures.
+- Removed obsolete standalone parameter-tab components and test-only compatibility exports superseded by the unified event-payload view and platform adapter runtime.
+- CI now rejects unreachable production source files and exported declarations with no production references; TypeScript also enforces unused local and parameter checks.
 
 ## 0.4.0 - 2026-07-14
 
