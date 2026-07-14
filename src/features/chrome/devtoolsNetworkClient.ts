@@ -1,10 +1,11 @@
 import type { ParameterCatalogEntry, PlatformNetworkObservation } from '../models';
 import type { HarEntry, HarLog } from '../network/harTypes';
 import { parseRequestWithPlatformAdapters } from '../platform/platformRuntime';
+import { runExtensionOperation } from './extensionLifecycle';
 
 export interface NetworkClientHandlers {
   onObservations: (entries: PlatformNetworkObservation[]) => void;
-  onNavigated: (url: string) => void;
+  onNavigated: (url: string) => void | Promise<void>;
 }
 
 function parseEntry(entry: HarEntry, catalog: ParameterCatalogEntry[]) {
@@ -29,7 +30,7 @@ export function startDevtoolsNetworkClient(
     const observations = parseEntry(request as unknown as HarEntry, importedCatalog);
     emitNew(observations);
   };
-  const navigated = (url: string) => handlers.onNavigated(url);
+  const navigated = (url: string) => runExtensionOperation(() => handlers.onNavigated(url));
   chrome.devtools.network.onRequestFinished.addListener(finished);
   chrome.devtools.network.onNavigated.addListener(navigated);
   chrome.devtools.network.getHAR((har) => {

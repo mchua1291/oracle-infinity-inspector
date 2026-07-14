@@ -5,6 +5,7 @@ import {
   type ExpectedDomainProfile,
 } from '../../features/models';
 import { getPlatformAdapter } from '../../features/platform/platformRegistry';
+import { runExtensionOperation } from '../../features/chrome/extensionLifecycle';
 import { diagnosticsActions } from '../../store/diagnosticsStore';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
@@ -173,16 +174,18 @@ export function SettingsTab({
         <div className="mt-4 flex flex-wrap gap-2">
           <Button
             onClick={() =>
-              void diagnosticsActions
-                .updateSettings(draft)
-                .then(() => setMessage('Settings saved locally.'))
+              runExtensionOperation(() =>
+                diagnosticsActions
+                  .updateSettings(draft)
+                  .then(() => setMessage('Settings saved locally.')),
+              )
             }
           >
             Save settings
           </Button>
           <Button
             className="bg-red-700 hover:bg-red-800"
-            onClick={() => void diagnosticsActions.reset(false)}
+            onClick={() => runExtensionOperation(() => diagnosticsActions.reset(false))}
           >
             Reset session data
           </Button>

@@ -18,6 +18,17 @@
 
 Include the displayed error and extension version in a GitHub issue. Do not include real client payloads, account identifiers, email addresses, or private URLs.
 
+## Edge reports `Extension context invalidated`
+
+This can occur when an unpacked extension is reloaded while its DevTools panel is still open. The
+reload retires the runtime used by that existing DevTools window.
+
+1. Close the affected DevTools window completely.
+2. Reopen DevTools and select the Oracle Infinity panel.
+
+The inspector handles this lifecycle transition quietly, but an already-retired panel cannot attach
+itself to the newly loaded extension runtime.
+
 ## The panel shows the wrong page or does not follow tab switching
 
 A DevTools instance is attached to the tab where it was opened. It follows navigation within that tab, but it cannot reattach when you select a different browser tab. Open DevTools on the desired tab.
