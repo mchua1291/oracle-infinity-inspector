@@ -35,21 +35,34 @@ The toolbar companion can scan the current page, show cached evidence, surface p
 
 All public screenshots are generated from synthetic `example.test` evidence. They contain no client URLs, identifiers, or payloads.
 
-## Install in Microsoft Edge
+## Browser compatibility
+
+Oracle Infinity Inspector uses standard Chromium Manifest V3, DevTools, runtime, tabs, and storage APIs. It does not use an Edge-only API, but browser support still differs by verification level:
+
+| Browser                                                 | Support level           | Notes                                                                                                                                                    |
+| ------------------------------------------------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Microsoft Edge 102+                                     | Verified and supported  | Primary development target; automated Edge smoke tests and authorized real-site QA are part of the release process.                                      |
+| Google Chrome 102+                                      | Expected compatible     | Uses the same required Chromium extension APIs. Chrome is documented for unpacked installation but is not yet part of the automated browser test matrix. |
+| Brave, Vivaldi, Opera, and other Chromium 102+ browsers | Expected but unverified | The extension may load, but DevTools placement, extension policies, and API behavior can vary by browser.                                                |
+| Firefox and Safari                                      | Unsupported             | Their extension and DevTools architectures require a separate port.                                                                                      |
+
+The minimum version is 102 because the extension uses `chrome.storage.session`. See [Installation](docs/INSTALLATION.md) for browser-specific loading steps and [Known Limitations](docs/LIMITATIONS.md) before using an unverified browser for client QA.
+
+## Install in a Chromium browser
 
 ### Recommended: ready-built release package
 
 1. Open the [latest GitHub release](https://github.com/mchua1291/oracle-infinity-inspector/releases/latest).
 2. Download the `oracle-infinity-inspector-vX.Y.Z-edge.zip` asset and extract it to a permanent folder.
-3. Open `edge://extensions` in Edge.
+3. Open `edge://extensions` in Edge. Chrome users can follow the browser-specific steps in [Installation](docs/INSTALLATION.md#load-in-google-chrome).
 4. Enable **Developer mode** and select **Load unpacked**.
 5. Select the extracted folder containing `manifest.json`.
 
-The accompanying `.sha256` file can be used to verify the downloaded ZIP. Unpacked extensions do not update automatically; replace the extracted files and reload the extension when a new version is published.
+The `-edge.zip` filename identifies Edge as the verified release target; the package itself is a standard unpacked Chromium extension. The accompanying `.sha256` file can be used to verify the downloaded ZIP. Unpacked extensions do not update automatically; replace the extracted files and reload the extension when a new version is published.
 
 ### Build from source
 
-Requirements: [Node.js 20 or newer](https://nodejs.org/), Git, and Microsoft Edge.
+Requirements: [Node.js 20 or newer](https://nodejs.org/), Git, and Microsoft Edge for verified testing or Google Chrome 102+ for expected-compatible testing.
 
 ```powershell
 git clone https://github.com/mchua1291/oracle-infinity-inspector.git
@@ -94,7 +107,7 @@ See [Usage](docs/USAGE.md) for a detailed walkthrough and [QA Guide](docs/QA_GUI
 - DevTools is attached to one browser tab. Open DevTools separately on another tab.
 - Opening DevTools after page load can miss earlier requests. Clear and reload before drawing conclusions.
 - Loader and tag-manager detection is evidence-based and cannot always prove which rule, container, or consent decision produced a request.
-- Firefox and Safari are not supported.
+- Microsoft Edge 102+ is the verified target. Chrome 102+ is expected-compatible, while other Chromium browsers are unverified; Firefox and Safari are unsupported.
 
 Read [Known Limitations](docs/LIMITATIONS.md) before using absence of evidence as a QA conclusion.
 

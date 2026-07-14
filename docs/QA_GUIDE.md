@@ -2,7 +2,7 @@
 
 ## Local setup
 
-Requirements: Node.js 20 or newer and a Chromium browser.
+Requirements: Node.js 20 or newer and Microsoft Edge 102+ for verified browser testing. Google Chrome 102+ is expected-compatible; other Chromium browsers are unverified.
 
 ```powershell
 npm.cmd install
@@ -17,14 +17,14 @@ The test suite uses sanitized DOM and HAR fixtures and never contacts Oracle end
 
 ## Load the unpacked extension
 
-1. Open `chrome://extensions`.
+1. Open the browser's extension-management page: `edge://extensions` for Microsoft Edge or `chrome://extensions` for Google Chrome.
 2. Enable **Developer mode**.
 3. Click **Load unpacked**.
-4. Select the repository's `dist` directory. Microsoft Edge is supported at Chromium engine version 102 or newer.
+4. Select the repository's `dist` directory.
 5. Open DevTools on the target tab before loading or reloading the page.
 6. Select the **Oracle Infinity** panel. If it is hidden, use the DevTools `»` overflow menu.
 
-After rebuilding, click the extension's reload button on `chrome://extensions` and reopen DevTools.
+After rebuilding, select the extension's reload button on the browser's extension-management page and reopen DevTools.
 
 ## Safe DOM fixtures
 
