@@ -20,9 +20,18 @@ export function startDevtoolsNetworkClient(
   handlers: NetworkClientHandlers,
   importedCatalog: OracleParameterCatalogEntry[] = [],
 ): () => void {
+  const seen = new Set<string>();
+  const emitNew = (observations: import('../models').OracleNetworkObservation[]) => {
+    const fresh = observations.filter((observation) => {
+      if (seen.has(observation.id)) return false;
+      seen.add(observation.id);
+      return true;
+    });
+    if (fresh.length) handlers.onObservations(fresh);
+  };
   const finished = (request: chrome.devtools.network.Request) => {
     const observations = parseEntry(request as unknown as HarEntry, importedCatalog);
-    if (observations.length) handlers.onObservations(observations);
+    emitNew(observations);
   };
   const navigated = (url: string) => handlers.onNavigated(url);
   chrome.devtools.network.onRequestFinished.addListener(finished);
@@ -31,7 +40,7 @@ export function startDevtoolsNetworkClient(
     const observations = (har as unknown as { log: HarLog }).log.entries.flatMap((entry) =>
       parseEntry(entry, importedCatalog),
     );
-    if (observations.length) handlers.onObservations(observations);
+    emitNew(observations);
   });
   return () => {
     chrome.devtools.network.onRequestFinished.removeListener(finished);

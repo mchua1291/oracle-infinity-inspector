@@ -9,6 +9,7 @@ import { Notice } from '../ui/Notice';
 
 export function ExportTab({ session }: { session: DiagnosticSession }) {
   const [copied, setCopied] = useState(false);
+  const [clientDataAcknowledged, setClientDataAcknowledged] = useState(false);
   const version = typeof chrome !== 'undefined' ? chrome.runtime.getManifest().version : '0.1.0';
   const report = useMemo(() => createExportReport(session, version), [session, version]);
   const markdown = useMemo(() => exportReportMarkdown(session, version), [session, version]);
@@ -38,6 +39,7 @@ export function ExportTab({ session }: { session: DiagnosticSession }) {
           <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
             <Metric label="Events" value={report.events.length} />
             <Metric label="Libraries" value={report.libraries.length} />
+            <Metric label="Support traffic" value={report.supportTraffic.length} />
             <Metric label="Tag managers" value={report.tagManagers.length} />
             <Metric label="Parameters" value={parameterCount} />
             <Metric label="Empty / null" value={emptyValueCount} warning={emptyValueCount > 0} />
@@ -50,8 +52,21 @@ export function ExportTab({ session }: { session: DiagnosticSession }) {
             Reports are generated and downloaded locally. They contain unmodified observed values,
             request URLs, and account identifiers.
           </p>
+          <label className="mt-4 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-950">
+            <input
+              type="checkbox"
+              className="mt-1"
+              checked={clientDataAcknowledged}
+              onChange={(event) => setClientDataAcknowledged(event.target.checked)}
+            />
+            <span>
+              I understand this report contains raw client data and will handle it under the
+              approved QA evidence and retention process.
+            </span>
+          </label>
           <div className="mt-4 grid gap-2">
             <Button
+              disabled={!clientDataAcknowledged}
               onClick={() =>
                 download(`${baseName}.json`, exportReportJson(session, version), 'application/json')
               }
@@ -59,12 +74,14 @@ export function ExportTab({ session }: { session: DiagnosticSession }) {
               Export complete QA report (JSON)
             </Button>
             <Button
+              disabled={!clientDataAcknowledged}
               onClick={() => download(`${baseName}.md`, markdown, 'text/markdown')}
               className="bg-[#514c47] hover:bg-[#312d2a]"
             >
               Export readable QA report (Markdown)
             </Button>
             <Button
+              disabled={!clientDataAcknowledged}
               className="border-stone-300 bg-white text-ink hover:bg-stone-100"
               onClick={() =>
                 void navigator.clipboard.writeText(markdown).then(() => {

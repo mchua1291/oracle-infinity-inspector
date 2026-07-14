@@ -17,7 +17,9 @@ export function summarizeInfinityLibraries(
     (entry) => entry.sourceType === 'infinity-library' || entry.eventKind === 'library',
   )) {
     const key = canonicalUrl(observation.requestUrl);
-    groups.set(key, [...(groups.get(key) ?? []), observation]);
+    const entries = groups.get(key);
+    if (entries) entries.push(observation);
+    else groups.set(key, [observation]);
   }
 
   return [...groups.entries()].map(([url, entries]) => {
@@ -33,6 +35,7 @@ export function summarizeInfinityLibraries(
     return {
       name: entries[0].libraryName ?? url.split('/').at(-1) ?? 'Infinity resource',
       url,
+      variantUrls: [...new Set(entries.map((entry) => entry.requestUrl))],
       resourceType: entries[0].libraryType ?? 'other',
       state: failed ? 'failed' : cached ? 'cached' : loaded ? 'loaded' : 'observed',
       requestCount: entries.length,

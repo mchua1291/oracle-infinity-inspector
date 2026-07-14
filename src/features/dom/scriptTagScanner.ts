@@ -7,6 +7,7 @@ const inlineLoaderPattern =
   /(?:d\.oracleinfinity\.io|oracleinfinity).*?odc\.js|createElement\s*\(\s*['"]script['"]\s*\)[\s\S]{0,1200}odc\.js/i;
 const tagManagerPattern =
   /(?:google[-_ ]?tag[-_ ]?manager|gtm[-_]|tealium|utag|adobe[-_ ]?(?:launch|satellite)|tag[-_ ]?manager)/i;
+const MAX_INLINE_SCRIPT_SCAN = 20_000;
 
 function isTagManagerRelated(script: HTMLScriptElement): boolean {
   let current: Element | null = script;
@@ -22,10 +23,11 @@ export function scanScriptTag(
   script: HTMLScriptElement,
   dynamicallyInserted = false,
 ): OracleCxTagLoader | undefined {
+  const inlineText = (script.textContent ?? '').slice(0, MAX_INLINE_SCRIPT_SCAN);
   const urlResult = script.src
     ? parseCxTagLoaderUrl(script.getAttribute('src') ?? script.src)
     : undefined;
-  const inlineLoaderEvidence = !script.src && inlineLoaderPattern.test(script.textContent ?? '');
+  const inlineLoaderEvidence = !script.src && inlineLoaderPattern.test(inlineText);
   if ((!urlResult || urlResult.status === 'failed') && !inlineLoaderEvidence) return undefined;
 
   const index = Array.from(document.scripts).indexOf(script);
@@ -33,7 +35,7 @@ export function scanScriptTag(
   const asyncAttribute =
     script.hasAttribute('async') ||
     (dynamicallyInserted && script.async) ||
-    (inlineLoaderEvidence && /\.async\s*=\s*(?:true|!0)/i.test(script.textContent ?? ''));
+    (inlineLoaderEvidence && /\.async\s*=\s*(?:true|!0)/i.test(inlineText));
   const deferAttribute = script.hasAttribute('defer');
   const parserInsertedInference =
     !dynamicallyInserted && inHead && !asyncAttribute && !deferAttribute && !inlineLoaderEvidence;
@@ -54,7 +56,7 @@ export function scanScriptTag(
       urlResult && urlResult.status !== 'failed'
         ? urlResult.data
         : {
-            environmentGuess: /analytics:test/i.test(script.textContent ?? '') ? 'test' : 'unknown',
+            environmentGuess: /analytics:test/i.test(inlineText) ? 'test' : 'unknown',
           },
     location: {
       path: buildDomPath(script),

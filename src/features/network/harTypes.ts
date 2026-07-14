@@ -1,5 +1,6 @@
 export interface HarEntry {
   startedDateTime?: string;
+  time?: number;
   request: {
     method?: string;
     url: string;

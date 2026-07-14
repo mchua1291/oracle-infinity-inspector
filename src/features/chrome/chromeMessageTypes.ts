@@ -16,7 +16,8 @@ export type ExtensionMessage =
       scannedAt: string;
     }
   | { type: 'GET_DOM_SCAN' }
-  | { type: 'REQUEST_DOM_SCAN'; tabId: number }
+  | { type: 'REQUEST_DOM_SCAN'; tabId: number; monitorMutations: boolean }
+  | { type: 'ACTIVATE_DOM_INSPECTION'; monitorMutations: boolean }
   | { type: 'GET_TAB_SESSION'; tabId: number }
   | { type: 'NETWORK_OBSERVATIONS'; tabId: number; observations: OracleNetworkObservation[] }
   | { type: 'CLEAR_SESSION'; tabId: number; pageUrl?: string }
@@ -31,12 +32,14 @@ export type ExtensionMessage =
   | { type: 'GET_VERSION' };
 
 export interface BackgroundTabSession {
+  schemaVersion: 1;
   pageUrl: string;
   loaders: OracleCxTagLoader[];
   tagManagers: TagManagerObservation[];
   observations: OracleNetworkObservation[];
   scannedAt: string;
   timeline: TimelineEntry[];
+  droppedObservationCount: number;
 }
 
 export interface PopupSummaryResponse {

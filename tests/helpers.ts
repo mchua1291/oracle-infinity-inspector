@@ -65,6 +65,7 @@ export function sessionFixture(overrides: Partial<DiagnosticSession> = {}): Diag
     warnings: [],
     timeline: [],
     captureMayBeIncomplete: true,
+    droppedObservationCount: 0,
     ...overrides,
   };
 }

@@ -14,9 +14,12 @@ npm run typecheck
 npm test
 npm run lint
 npm run build
+npm run smoke:edge
 ```
 
 Load the generated `dist` directory from `edge://extensions` with Developer mode enabled.
+
+The Edge smoke test is optional on platforms without Microsoft Edge, but it should pass before a browser-facing release.
 
 ## Pull requests
 

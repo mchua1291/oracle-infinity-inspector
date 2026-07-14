@@ -120,13 +120,21 @@ export const ParameterSensitivitySchema = z.enum([
 ]);
 export type ParameterSensitivity = z.infer<typeof ParameterSensitivitySchema>;
 
+const HttpsDocumentationUrlSchema = z
+  .string()
+  .url()
+  .max(2048)
+  .refine((value) => new URL(value).protocol === 'https:', {
+    message: 'Documentation links must use HTTPS.',
+  });
+
 export const OracleParameterCatalogEntrySchema = z.object({
-  name: z.string(),
-  displayName: z.string(),
-  description: z.string(),
+  name: z.string().min(1).max(120),
+  displayName: z.string().min(1).max(200),
+  description: z.string().min(1).max(2000),
   sensitivity: ParameterSensitivitySchema,
-  reportingNameNote: z.string().optional(),
-  sourceUrl: z.string().url(),
+  reportingNameNote: z.string().max(1000).optional(),
+  sourceUrl: HttpsDocumentationUrlSchema,
 });
 export type OracleParameterCatalogEntry = z.infer<typeof OracleParameterCatalogEntrySchema>;
 
@@ -223,6 +231,7 @@ export const DiagnosticSummarySchema = z.object({
   collectionEventCount: z.number().int().nonnegative(),
   cxTagEventCount: z.number().int().nonnegative(),
   dcApiEventCount: z.number().int().nonnegative(),
+  supportTrafficCount: z.number().int().nonnegative(),
   standardParameterCount: z.number().int().nonnegative(),
   customParameterCount: z.number().int().nonnegative(),
   unknownParameterCount: z.number().int().nonnegative(),
@@ -246,6 +255,7 @@ export const DiagnosticSessionSchema = z.object({
   warnings: z.array(DiagnosticWarningSchema),
   timeline: z.array(TimelineEntrySchema),
   captureMayBeIncomplete: z.boolean(),
+  droppedObservationCount: z.number().int().nonnegative(),
   oraGlobalDetected: z.boolean().optional(),
 });
 export type DiagnosticSession = z.infer<typeof DiagnosticSessionSchema>;
@@ -265,7 +275,7 @@ export const ExtensionSettingsSchema = z.object({
   enablePageContextDetection: z.boolean(),
   enableReloadRecommendationBanner: z.boolean(),
   expectedProfiles: z.array(ExpectedDomainProfileSchema),
-  importedCatalog: z.array(OracleParameterCatalogEntrySchema),
+  importedCatalog: z.array(OracleParameterCatalogEntrySchema).max(1000),
 });
 export type ExtensionSettings = z.infer<typeof ExtensionSettingsSchema>;
 
@@ -305,6 +315,7 @@ export type ExportedQaEvent = z.infer<typeof ExportedQaEventSchema>;
 export const InfinityLibrarySummarySchema = z.object({
   name: z.string(),
   url: z.string(),
+  variantUrls: z.array(z.string()),
   resourceType: z.enum(['javascript', 'stylesheet', 'other']),
   state: z.enum(['loaded', 'cached', 'failed', 'observed']),
   requestCount: z.number().int().positive(),
@@ -314,6 +325,18 @@ export const InfinityLibrarySummarySchema = z.object({
   issues: z.array(z.string()),
 });
 export type InfinityLibrarySummary = z.infer<typeof InfinityLibrarySummarySchema>;
+
+export const InfinitySupportTrafficSummarySchema = z.object({
+  url: z.string(),
+  methods: z.array(z.string()),
+  state: z.enum(['successful', 'failed', 'observed']),
+  requestCount: z.number().int().positive(),
+  statusCodes: z.array(z.number().int()),
+  firstObservedAt: z.string(),
+  lastObservedAt: z.string(),
+  issues: z.array(z.string()),
+});
+export type InfinitySupportTrafficSummary = z.infer<typeof InfinitySupportTrafficSummarySchema>;
 
 export const ExportedDiagnosticReportSchema = z.object({
   reportType: z.literal('oracle-infinity-qa-report'),
@@ -330,6 +353,7 @@ export const ExportedDiagnosticReportSchema = z.object({
   loaders: z.array(OracleCxTagLoaderSchema),
   tagManagers: z.array(TagManagerObservationSchema),
   libraries: z.array(InfinityLibrarySummarySchema),
+  supportTraffic: z.array(InfinitySupportTrafficSummarySchema),
   events: z.array(ExportedQaEventSchema),
   warnings: z.array(DiagnosticWarningSchema),
   notes: z.array(z.string()),

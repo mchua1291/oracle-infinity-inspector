@@ -10,6 +10,7 @@ npm.cmd run typecheck
 npm.cmd test
 npm.cmd run lint
 npm.cmd run build
+npm.cmd run smoke:edge
 ```
 
 The test suite uses sanitized DOM and HAR fixtures and never contacts Oracle endpoints.
@@ -19,7 +20,7 @@ The test suite uses sanitized DOM and HAR fixtures and never contacts Oracle end
 1. Open `chrome://extensions`.
 2. Enable **Developer mode**.
 3. Click **Load unpacked**.
-4. Select the repository's `dist` directory.
+4. Select the repository's `dist` directory. Microsoft Edge is supported at Chromium engine version 102 or newer.
 5. Open DevTools on the target tab before loading or reloading the page.
 6. Select the **Oracle Infinity** panel. If it is hidden, use the DevTools `»` overflow menu.
 
@@ -76,13 +77,13 @@ Never run this fixture with Oracle request blocking disabled.
 6. Trigger the page view and approved test interactions. Confirm `wt.dl=0`, `wt.dl=1`, and any other codes without assigning undocumented meanings.
 7. In Network Events, select each event and verify the out-of-the-box, custom, and needs-review groups together in the payload detail.
 8. Confirm empty strings and explicit nulls remain visible and are highlighted as potential issues.
-9. Review duplicate, environment, request failure, empty-value, raw-email, token, and catalog warnings. Long values in documented identifier fields should remain identifiers, but a raw email is still a high-severity finding regardless of field name.
+9. Review duplicate, full expected-profile, request failure, empty-value, raw-email, payment-card, phone, token, and catalog warnings. Long values in documented identifier fields should remain identifiers, but a raw email is still a high-severity finding regardless of field name.
 10. For commerce interactions, confirm the displayed reserved event name and transaction code, then review line-item alignment, subtotal math, and format findings. Low-severity companion/event-type findings are prompts for implementation-specific review where Oracle's examples are inconsistent.
 
 ## Export QA
 
 1. Open Export and confirm the collection-event, Infinity-library, parameter, empty/null, and diagnostic counts match the session.
-2. Export the complete JSON report and the readable Markdown report.
+2. Acknowledge that the report contains raw client data, then export the complete JSON report and the readable Markdown report.
 3. Confirm every captured event contains request metadata, event-scoped QA findings, and all observed parameters grouped as out-of-the-box, custom, or needs review.
 4. Confirm raw values, request URLs, and account GUIDs are preserved. Confirm empty strings and nulls are explicitly identified as potential issues.
 5. Handle or delete exported client QA reports according to the approved retention process.
@@ -90,6 +91,7 @@ Never run this fixture with Oracle request blocking disabled.
 ## Release checklist
 
 - TypeScript, tests, lint, and production build pass.
+- The local Edge smoke test passes on a workstation with Edge installed.
 - `dist/manifest.json` is MV3 and points to fixed service-worker/content-script bundle names.
 - No remote script, telemetry, broad `host_permissions`, or request-blocking permission is present.
 - No real account GUID, customer data, email, token, or order data appears in source or fixtures.

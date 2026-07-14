@@ -28,11 +28,13 @@ These results are sync/async inference, not a guaranteed execution trace. The DO
 
 Requests must be Oracle Infinity-hosted and end in `dcs.gif`. All observed query parameters are preserved, including repeated values. Oracle documents `wt.dl=0` as a view call and `wt.dl=1` as a click call. Other values are reported as event-code-specific without assigning undocumented meaning.
 
+When the documented `https://dc.oracleinfinity.io/{Account GUID}/dcs.gif` path is observed, the account GUID is extracted for expected-profile validation. Oracle host matching requires the exact `oracleinfinity.io` domain boundary and rejects lookalike suffixes.
+
 Source: [Oracle CX Tag Tracking Reference](https://docs.oracle.com/en/cloud/saas/marketing/infinity-develop/docs/data_collection/cx_tag_tracking_reference.htm).
 
 ## Infinity libraries
 
-JavaScript, stylesheet, source-map, and WebAssembly resources on Oracle Infinity hosts are classified as static libraries rather than collection events. The `odc.js` loader, `dcs.gif`, and DC API retain their more specific classifications. HTTP 304 is reported as **cached / not modified**, which indicates successful browser cache validation rather than a failed or duplicate collection call. Libraries are grouped by origin and pathname so cache-busting query strings do not produce repetitive QA-report entries.
+JavaScript, stylesheet, source-map, and WebAssembly resources on Oracle Infinity hosts are classified as static libraries rather than collection events. The `odc.js` loader, `dcs.gif`, and DC API retain their more specific classifications. HTTP 304 is reported as **cached / not modified**, which indicates successful browser cache validation rather than a failed or duplicate collection call. Libraries are grouped by origin and pathname so cache-busting query strings do not produce repetitive QA-report entries, while the report retains the observed URL variants.
 
 Oracle documents that the files making up an Infinity tag are deployed to a CDN cache: [Oracle Infinity data collection](https://docs.oracle.com/en/cloud/saas/marketing/infinity-develop/docs/data_collection.htm).
 
@@ -56,7 +58,7 @@ The parser recognizes HTTPS POST-like requests to:
 https://dc.oracleinfinity.io/v3/{accountGuid}
 ```
 
-When HAR exposes a JSON body, the parser validates an optional `static` object and a required non-empty `events` array. String and explicit null values are retained, and each valid event is flattened with static values inherited; event values override static values. Unavailable, compressed, malformed, or unsupported object, array, number, and boolean values produce safe failed or partial results.
+The documented v3 endpoint is expected to use POST. Other methods are retained as supportable evidence and reported as an unexpected-method diagnostic without being mislabeled as a malformed JSON body. When HAR exposes a JSON body, the parser validates an optional `static` object and a required non-empty `events` array. String and explicit null values are retained, and each valid event is flattened with static values inherited; event values override static values. Unavailable, compressed, malformed, or unsupported object, array, number, and boolean values produce safe failed or partial results.
 
 Only browser-visible DC API requests can be observed. Backend DC API traffic is outside a browser extension's visibility.
 
@@ -87,6 +89,6 @@ Source: [Oracle Infinity commerce parameter reference](https://docs.oracle.com/e
 - `cx-tag-loader`: documented `odc.js` network request.
 - `cx-tag-network`: Oracle Infinity `dcs.gif` collection request.
 - `dcapi-browser-visible`: visible DC API v3 request.
-- `unknown-infinity-network`: an Oracle Infinity-hosted request that does not match a verified pattern.
+- `unknown-infinity-network`: Oracle Infinity support or service traffic that does not match a verified collection or static-library pattern. It is summarized separately and never counted as a collection event.
 
 The panel reports observed parameters only and never implies that an absent parameter was not collected elsewhere.

@@ -75,6 +75,11 @@ export function OverviewTab({
           }
         />
         <StatusSummaryCard
+          label="Support traffic"
+          value={summary.supportTrafficCount}
+          note="Not counted as events"
+        />
+        <StatusSummaryCard
           label="Tag managers"
           value={summary.tagManagerCount}
           note="Implementation clues"

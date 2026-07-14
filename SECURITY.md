@@ -10,7 +10,7 @@ For ordinary bugs without sensitive evidence, open a GitHub issue with the exten
 
 ## Supported versions
 
-Until tagged releases are published, security fixes apply to the latest commit on the default branch. Unpacked installations do not update automatically; users must pull, rebuild, and reload the extension.
+Until tagged releases are published, security fixes apply to version 0.2.x and the latest commit on the default branch. Unpacked installations do not update automatically; users must pull, rebuild, and reload the extension.
 
 ## Security boundaries
 

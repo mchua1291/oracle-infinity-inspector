@@ -36,6 +36,10 @@ Static Oracle Infinity resources are recognized by Oracle-hosted resource paths 
 
 Chrome HAR may omit request bodies, and compressed/binary bodies may not be readable as JSON. These cases are reported as unavailable or partial. The extension does not decompress opaque bodies or patch page networking.
 
+## Long sessions
+
+The inspector retains the latest 1,000 network observations per tab to keep diagnostics and report previews responsive. When the limit is reached, older observations are removed and an informational warning records the count. Use focused captures or separate exports when a test plan produces more than 1,000 supporting, library, loader, and collection requests.
+
 ## SPA routes
 
 Hash changes and popstate events are observed. Other SPA route changes are inferred opportunistically when DOM mutations reveal that `location.href` changed. History APIs are not monkeypatched, so some route transitions may not be reported.
@@ -44,4 +48,4 @@ Hash changes and popstate events are observed. Other SPA route changes are infer
 
 The build targets Chromium Manifest V3 and Chrome DevTools APIs. Firefox and Safari extension architectures are not supported. Edge and other Chromium browsers may work but are not part of the verified compatibility scope. Chrome internal pages, the Chrome Web Store, and pages where content scripts are prohibited cannot be inspected fully.
 
-A DevTools instance is attached to one browser tab. Switching to another Edge or Chrome tab cannot reattach the existing DevTools panel; open DevTools on the new tab instead. Navigation within the attached tab is synchronized automatically.
+A DevTools instance is attached to one browser tab. Switching to another Edge or Chrome tab cannot reattach the existing DevTools panel; open DevTools on the new tab instead. Navigation within the attached tab is synchronized through navigation events, focus/visibility checks, and a five-second visible-panel backstop.

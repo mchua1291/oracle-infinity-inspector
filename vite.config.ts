@@ -16,7 +16,6 @@ export default defineConfig({
         panel: resolve(rootDirectory, 'panel.html'),
         popup: resolve(rootDirectory, 'popup.html'),
         serviceWorker: resolve(rootDirectory, 'src/background/serviceWorker.ts'),
-        contentScript: resolve(rootDirectory, 'src/content/domScannerContentScript.ts'),
       },
       output: {
         entryFileNames: 'assets/[name].js',

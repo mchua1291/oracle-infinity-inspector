@@ -9,6 +9,7 @@ import type {
   OracleNetworkObservation,
 } from '../../features/models';
 import { commerceEventDefinition } from '../../features/diagnostics/commerceValidator';
+import { isCollectionObservation } from '../../features/network/observationCollection';
 import { Badge } from '../ui/Badge';
 import { Card } from '../ui/Card';
 import { EmptyState } from '../ui/EmptyState';
@@ -35,14 +36,6 @@ function isEmpty(parameter: ObservedParameter): boolean {
   return parameter.value === '' || parameter.value === null;
 }
 
-function findingsForEvent(
-  event: OracleNetworkObservation,
-  warnings: DiagnosticWarning[],
-): DiagnosticWarning[] {
-  const evidenceIds = new Set([event.id, ...event.parameters.map((parameter) => parameter.id)]);
-  return warnings.filter((warning) => warning.evidenceIds.some((id) => evidenceIds.has(id)));
-}
-
 function severityTone(severity: DiagnosticSeverity): 'danger' | 'warning' | 'neutral' | 'info' {
   if (severity === 'high') return 'danger';
   if (severity === 'medium') return 'warning';
@@ -57,11 +50,30 @@ export function NetworkEventsTab({ session }: { session: DiagnosticSession }) {
   const [warningOnly, setWarningOnly] = useState(false);
   const [selectedId, setSelectedId] = useState<string>();
   const collectionEvents = useMemo(
-    () =>
-      session.networkObservations.filter(
-        (event) => event.eventKind !== 'loader' && event.eventKind !== 'library',
-      ),
+    () => session.networkObservations.filter(isCollectionObservation),
     [session.networkObservations],
+  );
+  const findingsByEvent = useMemo(() => {
+    const byEvidence = new Map<string, DiagnosticWarning[]>();
+    for (const warning of session.warnings) {
+      for (const evidenceId of warning.evidenceIds) {
+        const findings = byEvidence.get(evidenceId);
+        if (findings) findings.push(warning);
+        else byEvidence.set(evidenceId, [warning]);
+      }
+    }
+    return new Map(
+      collectionEvents.map((event) => {
+        const findings = new Map<string, DiagnosticWarning>();
+        for (const evidenceId of [event.id, ...event.parameters.map((parameter) => parameter.id)])
+          for (const warning of byEvidence.get(evidenceId) ?? []) findings.set(warning.id, warning);
+        return [event.id, [...findings.values()]];
+      }),
+    );
+  }, [collectionEvents, session.warnings]);
+  const eventSequence = useMemo(
+    () => new Map(collectionEvents.map((event, index) => [event.id, index + 1])),
+    [collectionEvents],
   );
   const filtered = useMemo(
     () =>
@@ -71,15 +83,15 @@ export function NetworkEventsTab({ session }: { session: DiagnosticSession }) {
           (kind === 'all' || event.eventKind === kind) &&
           (!warningOnly ||
             event.warnings.length > 0 ||
-            findingsForEvent(event, session.warnings).length > 0) &&
+            (findingsByEvent.get(event.id)?.length ?? 0) > 0) &&
           `${event.requestUrl} ${event.parameters.map((item) => `${item.name} ${item.value ?? 'null'}`).join(' ')}`
             .toLowerCase()
             .includes(search.toLowerCase()),
       ),
-    [collectionEvents, session.warnings, source, kind, warningOnly, search],
+    [collectionEvents, findingsByEvent, source, kind, warningOnly, search],
   );
   const selected = filtered.find((event) => event.id === selectedId) ?? filtered[0];
-  const selectedFindings = selected ? findingsForEvent(selected, session.warnings) : [];
+  const selectedFindings = selected ? (findingsByEvent.get(selected.id) ?? []) : [];
 
   if (!collectionEvents.length)
     return (
@@ -112,7 +124,7 @@ export function NetworkEventsTab({ session }: { session: DiagnosticSession }) {
           label="Source filter"
           value={source}
           onChange={(value) => setSource(value as typeof source)}
-          options={['all', 'cx-tag-network', 'dcapi-browser-visible', 'unknown-infinity-network']}
+          options={['all', 'cx-tag-network', 'dcapi-browser-visible']}
         />
         <Filter
           label="Event type filter"
@@ -151,9 +163,9 @@ export function NetworkEventsTab({ session }: { session: DiagnosticSession }) {
             </thead>
             <tbody>
               {filtered.map((event) => {
-                const sequence = collectionEvents.findIndex((item) => item.id === event.id) + 1;
+                const sequence = eventSequence.get(event.id) ?? 0;
                 const issueCount =
-                  event.warnings.length + findingsForEvent(event, session.warnings).length;
+                  event.warnings.length + (findingsByEvent.get(event.id)?.length ?? 0);
                 const active = event.id === selected?.id;
                 return (
                   <tr
@@ -206,7 +218,7 @@ export function NetworkEventsTab({ session }: { session: DiagnosticSession }) {
         </Card>
         <EventDetails
           event={selected}
-          sequence={selected ? collectionEvents.indexOf(selected) + 1 : 0}
+          sequence={selected ? (eventSequence.get(selected.id) ?? 0) : 0}
           findings={selectedFindings}
         />
       </div>

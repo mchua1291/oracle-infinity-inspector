@@ -16,7 +16,7 @@ function source(element: Element): string {
 }
 
 function inlineText(element: Element): string {
-  return element instanceof HTMLScriptElement ? (element.textContent ?? '') : '';
+  return element instanceof HTMLScriptElement ? (element.textContent ?? '').slice(0, 20_000) : '';
 }
 
 function observation(

@@ -9,6 +9,9 @@ import {
   type OracleNetworkObservation,
 } from '../features/models';
 import { loadSettings, saveSettings } from '../features/settings/settingsStore';
+import { mergeObservations } from '../features/network/observationCollection';
+
+const MAX_TIMELINE_ENTRIES = 1500;
 
 interface DiagnosticsState {
   ready: boolean;
@@ -36,6 +39,7 @@ function blankSession(pageUrl = '', captureMayBeIncomplete = true): DiagnosticSe
     warnings: [],
     timeline: [],
     captureMayBeIncomplete,
+    droppedObservationCount: 0,
   };
 }
 
@@ -55,9 +59,25 @@ function subscribe(listener: () => void) {
 }
 
 function hydrate(source: BackgroundTabSession, current: DiagnosticSession): DiagnosticSession {
-  const events = new Map(current.networkObservations.map((event) => [event.id, event]));
-  source.observations.forEach((event) => events.set(event.id, event));
-  const networkObservations = [...events.values()];
+  const merged = mergeObservations(current.networkObservations, source.observations);
+  const networkObservations = merged.observations;
+  const routeTimeline = [...source.timeline, ...current.timeline].filter(
+    (entry) => entry.type === 'route-change',
+  );
+  const timeline = new Map(
+    [
+      ...routeTimeline,
+      ...networkObservations
+        .filter((event) => event.eventKind !== 'library')
+        .map((event) => ({
+          id: `timeline:${event.id}`,
+          timestamp: event.timestamp,
+          type: 'network' as const,
+          title: `${event.eventKind} · ${event.sourceType}`,
+          detail: event.requestUrl,
+        })),
+    ].map((entry) => [entry.id, entry]),
+  );
   return withDiagnostics(
     {
       ...current,
@@ -67,18 +87,9 @@ function hydrate(source: BackgroundTabSession, current: DiagnosticSession): Diag
       tagManagers: source.tagManagers ?? [],
       networkObservations,
       parameters: networkObservations.flatMap((event) => event.parameters),
-      timeline: [
-        ...source.timeline,
-        ...networkObservations
-          .filter((event) => event.eventKind !== 'library')
-          .map((event) => ({
-            id: `timeline:${event.id}`,
-            timestamp: event.timestamp,
-            type: 'network' as const,
-            title: `${event.eventKind} · ${event.sourceType}`,
-            detail: event.requestUrl,
-          })),
-      ],
+      timeline: [...timeline.values()].slice(-MAX_TIMELINE_ENTRIES),
+      droppedObservationCount:
+        Math.max(current.droppedObservationCount, source.droppedObservationCount) + merged.dropped,
     },
     state.settings.expectedProfiles,
   );
@@ -115,6 +126,7 @@ export const diagnosticsActions = {
       await chrome.runtime.sendMessage({
         type: 'REQUEST_DOM_SCAN',
         tabId,
+        monitorMutations: settings.enableDomMutationMonitoring,
       } satisfies ExtensionMessage);
       await refreshFromBackground();
       if (settings.enablePageContextDetection)
@@ -131,12 +143,14 @@ export const diagnosticsActions = {
   },
   addObservations(observations: OracleNetworkObservation[]) {
     const source: BackgroundTabSession = {
+      schemaVersion: 1,
       pageUrl: state.session.pageUrl,
       loaders: state.session.loaders,
       tagManagers: state.session.tagManagers,
       observations,
       scannedAt: new Date().toISOString(),
       timeline: state.session.timeline.filter((entry) => entry.type === 'route-change'),
+      droppedObservationCount: state.session.droppedObservationCount,
     };
     setState({ ...state, session: hydrate(source, state.session) });
     void chrome.runtime.sendMessage({
@@ -160,7 +174,11 @@ export const diagnosticsActions = {
       pageUrl: inspectedPageUrl,
     } satisfies ExtensionMessage);
     await chrome.runtime
-      .sendMessage({ type: 'REQUEST_DOM_SCAN', tabId } satisfies ExtensionMessage)
+      .sendMessage({
+        type: 'REQUEST_DOM_SCAN',
+        tabId,
+        monitorMutations: state.settings.enableDomMutationMonitoring,
+      } satisfies ExtensionMessage)
       .catch(() => undefined);
   },
   updateInspectedPageUrl(pageUrl: string) {

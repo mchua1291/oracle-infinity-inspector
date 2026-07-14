@@ -1,7 +1,9 @@
 import {
   matchDcApiUrl,
+  matchDcsGifUrl,
   matchInfinityLibraryUrl,
   parseCxTagLoaderUrl,
+  isDcsGifUrl,
 } from '../../src/features/infinity/infinityUrlPatterns';
 
 describe('Oracle URL patterns', () => {
@@ -39,5 +41,16 @@ describe('Oracle URL patterns', () => {
     expect(
       matchInfinityLibraryUrl('https://sample.dc.oracleinfinity.io/dcs.gif?wt.dl=0'),
     ).toBeUndefined();
+  });
+
+  it('extracts the documented dcs.gif account path', () => {
+    expect(
+      matchDcsGifUrl('https://dc.oracleinfinity.io/example-account-guid/dcs.gif?wt.dl=0'),
+    ).toEqual({ accountGuid: 'example-account-guid' });
+  });
+
+  it('rejects lookalike Oracle Infinity hostnames', () => {
+    expect(isDcsGifUrl('https://eviloracleinfinity.io/dcs.gif?wt.dl=0')).toBe(false);
+    expect(matchInfinityLibraryUrl('https://eviloracleinfinity.io/ubi.js')).toBeUndefined();
   });
 });

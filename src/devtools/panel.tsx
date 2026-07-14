@@ -17,11 +17,12 @@ void diagnosticsActions.initialize().then(() => {
   void diagnosticsActions.syncInspectedPageUrl();
 });
 
-const pageUrlSyncInterval = window.setInterval(
-  () => void diagnosticsActions.syncInspectedPageUrl(),
-  1000,
-);
-window.addEventListener('focus', () => void diagnosticsActions.syncInspectedPageUrl());
+const syncVisiblePage = () => {
+  if (document.visibilityState === 'visible') void diagnosticsActions.syncInspectedPageUrl();
+};
+const pageUrlSyncInterval = window.setInterval(syncVisiblePage, 5000);
+window.addEventListener('focus', syncVisiblePage);
+document.addEventListener('visibilitychange', syncVisiblePage);
 window.addEventListener('beforeunload', () => window.clearInterval(pageUrlSyncInterval), {
   once: true,
 });

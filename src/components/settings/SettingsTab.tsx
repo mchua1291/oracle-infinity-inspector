@@ -27,7 +27,9 @@ export function SettingsTab({
   } catch {
     domain = '';
   }
-  const profile = draft.expectedProfiles.find((item) => item.domain === domain) ?? {
+  const profile = draft.expectedProfiles.find(
+    (item) => item.domain.toLowerCase() === domain.toLowerCase(),
+  ) ?? {
     domain,
     environment: 'unknown' as const,
     accountGuids: [],
@@ -37,7 +39,12 @@ export function SettingsTab({
   const updateProfile = (next: ExpectedDomainProfile) =>
     setDraft({
       ...draft,
-      expectedProfiles: [...draft.expectedProfiles.filter((item) => item.domain !== domain), next],
+      expectedProfiles: [
+        ...draft.expectedProfiles.filter(
+          (item) => item.domain.toLowerCase() !== domain.toLowerCase(),
+        ),
+        next,
+      ],
     });
   const importCatalog = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -45,9 +52,13 @@ export function SettingsTab({
     try {
       const entries = z
         .array(OracleParameterCatalogEntrySchema)
+        .max(1000)
         .parse(JSON.parse(await file.text()));
-      update('importedCatalog', entries);
-      setMessage(`Imported ${entries.length} verified local entries into the draft.`);
+      const deduplicated = [
+        ...new Map(entries.map((entry) => [entry.name.toLowerCase(), entry])).values(),
+      ];
+      update('importedCatalog', deduplicated);
+      setMessage(`Imported ${deduplicated.length} verified local entries into the draft.`);
     } catch {
       setMessage('Catalog import failed schema validation. No entries were applied.');
     }
@@ -99,6 +110,7 @@ export function SettingsTab({
           </Field>
           <Field label="Expected account GUIDs (comma-separated, stored locally)">
             <input
+              maxLength={2000}
               value={profile.accountGuids.join(', ')}
               onChange={(event) =>
                 updateProfile({
@@ -114,6 +126,7 @@ export function SettingsTab({
           </Field>
           <Field label="Tag ID">
             <input
+              maxLength={200}
               value={profile.tagId ?? ''}
               onChange={(event) =>
                 updateProfile({ ...profile, tagId: event.target.value || undefined })
@@ -123,6 +136,7 @@ export function SettingsTab({
           </Field>
           <Field label="_ora.config">
             <input
+              maxLength={500}
               value={profile.config ?? ''}
               onChange={(event) =>
                 updateProfile({ ...profile, config: event.target.value || undefined })

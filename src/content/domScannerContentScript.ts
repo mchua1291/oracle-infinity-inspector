@@ -10,6 +10,9 @@ const observed = new Map<string, OracleCxTagLoader>();
 const observedTagManagers = new Map<string, TagManagerObservation>();
 let monitorEnabled = true;
 let lastUrl = location.href;
+let active = false;
+let observer: MutationObserver | undefined;
+let routeListenersInstalled = false;
 
 function loaderKey(loader: OracleCxTagLoader): string {
   return `${loader.sourceUrl ?? 'inline'}|${loader.location.path}`;
@@ -55,46 +58,63 @@ function checkRouteChange() {
   void chrome.runtime.sendMessage(message).catch(() => undefined);
 }
 
-const observer = new MutationObserver((mutations) => {
-  checkRouteChange();
-  if (!monitorEnabled) return;
-  let changed = false;
-  for (const mutation of mutations) {
-    for (const node of mutation.addedNodes) {
-      if (!(node instanceof Element)) continue;
-      const scripts = node.matches('script') ? [node] : Array.from(node.querySelectorAll('script'));
-      for (const candidate of scripts) {
-        const loader = scanScriptTag(
-          candidate as HTMLScriptElement,
-          document.readyState !== 'loading',
-        );
-        if (loader) {
-          observed.set(loaderKey(loader), loader);
-          changed = true;
+function activateDomInspection(enableMutations: boolean) {
+  active = true;
+  monitorEnabled = enableMutations;
+  lastUrl = location.href;
+  if (!observer) {
+    observer = new MutationObserver((mutations) => {
+      if (!active) return;
+      checkRouteChange();
+      if (!monitorEnabled) return;
+      let changed = false;
+      for (const mutation of mutations) {
+        for (const node of mutation.addedNodes) {
+          if (!(node instanceof Element)) continue;
+          const scripts = node.matches('script')
+            ? [node]
+            : Array.from(node.querySelectorAll('script'));
+          for (const candidate of scripts) {
+            const loader = scanScriptTag(
+              candidate as HTMLScriptElement,
+              document.readyState !== 'loading',
+            );
+            if (loader) {
+              observed.set(loaderKey(loader), loader);
+              changed = true;
+            }
+          }
+          const tagManagerElements = node.matches('script, iframe')
+            ? [node]
+            : Array.from(node.querySelectorAll('script, iframe'));
+          for (const element of tagManagerElements) {
+            const manager = scanTagManagerElement(element);
+            if (manager) {
+              observedTagManagers.set(tagManagerKey(manager), manager);
+              changed = true;
+            }
+          }
         }
       }
-      const tagManagerElements = node.matches('script, iframe')
-        ? [node]
-        : Array.from(node.querySelectorAll('script, iframe'));
-      for (const element of tagManagerElements) {
-        const manager = scanTagManagerElement(element);
-        if (manager) {
-          observedTagManagers.set(tagManagerKey(manager), manager);
-          changed = true;
-        }
-      }
-    }
+      if (changed) publish();
+    });
+    observer.observe(document, { childList: true, subtree: true });
   }
-  if (changed) publish();
-});
-
-observer.observe(document, { childList: true, subtree: true });
-window.addEventListener('hashchange', checkRouteChange, { passive: true });
-window.addEventListener('popstate', checkRouteChange, { passive: true });
-document.addEventListener('DOMContentLoaded', scanAll, { once: true });
-if (document.readyState !== 'loading') scanAll();
+  if (!routeListenersInstalled) {
+    routeListenersInstalled = true;
+    window.addEventListener('hashchange', checkRouteChange, { passive: true });
+    window.addEventListener('popstate', checkRouteChange, { passive: true });
+  }
+  if (document.readyState === 'loading')
+    document.addEventListener('DOMContentLoaded', scanAll, { once: true });
+  scanAll();
+}
 
 chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendResponse) => {
+  if (message.type === 'ACTIVATE_DOM_INSPECTION') {
+    activateDomInspection(message.monitorMutations);
+    sendResponse({ ok: true });
+  }
   if (message.type === 'GET_DOM_SCAN') {
     scanAll();
     sendResponse({

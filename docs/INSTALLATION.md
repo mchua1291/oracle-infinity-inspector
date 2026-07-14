@@ -4,7 +4,7 @@ Oracle Infinity Inspector is installed from its source code as an unpacked Micro
 
 ## Requirements
 
-- Microsoft Edge or another Chromium browser with Manifest V3 DevTools support.
+- Microsoft Edge or another Chromium browser with Manifest V3 DevTools support and Chromium engine version 102 or newer.
 - Node.js 20 or newer, including `npm`.
 - Git, if cloning or updating from GitHub.
 

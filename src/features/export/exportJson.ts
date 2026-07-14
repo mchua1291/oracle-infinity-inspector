@@ -1,6 +1,8 @@
 import { buildSummary } from '../diagnostics/diagnosticEngine';
 import { ORACLE_PARAMETER_CATALOG } from '../infinity/oracleParameterCatalog';
 import { summarizeInfinityLibraries } from '../infinity/librarySummary';
+import { summarizeInfinitySupportTraffic } from '../infinity/supportTrafficSummary';
+import { isCollectionObservation } from '../network/observationCollection';
 import type {
   DiagnosticSession,
   DiagnosticWarning,
@@ -60,7 +62,7 @@ export function createExportReport(
   extensionVersion = '0.1.0',
 ): ExportedDiagnosticReport {
   const events = session.networkObservations
-    .filter((event) => event.eventKind !== 'loader' && event.eventKind !== 'library')
+    .filter(isCollectionObservation)
     .map((event, index) =>
       createQaEvent(event, index + 1, findingsForEvent(event, session.warnings)),
     );
@@ -80,6 +82,7 @@ export function createExportReport(
     loaders: session.loaders,
     tagManagers: session.tagManagers ?? [],
     libraries: summarizeInfinityLibraries(session.networkObservations),
+    supportTraffic: summarizeInfinitySupportTraffic(session.networkObservations),
     events,
     warnings: session.warnings,
     notes: [
@@ -87,7 +90,13 @@ export function createExportReport(
       'Only browser-visible Oracle Infinity traffic is included; server-side DC API calls are outside extension scope.',
       'DC API static parameters are inherited into each logical event and retain their origin metadata.',
       'Static Infinity libraries are summarized separately and are not counted as data collection events.',
+      'Unverified Infinity support and service traffic is summarized separately and is not counted as data collection events.',
       'Tag-manager evidence identifies standard page-level snippets but does not prove which manager deployed Infinity.',
+      ...(session.droppedObservationCount > 0
+        ? [
+            `${session.droppedObservationCount} older observations were removed after the session limit was reached.`,
+          ]
+        : []),
     ],
   };
 }

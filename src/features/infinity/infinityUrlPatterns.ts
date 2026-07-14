@@ -11,6 +11,11 @@ function absoluteUrl(input: string): URL | undefined {
   }
 }
 
+export function isOracleInfinityHost(hostname: string): boolean {
+  const normalized = hostname.toLowerCase().replace(/\.$/, '');
+  return normalized === 'oracleinfinity.io' || normalized.endsWith('.oracleinfinity.io');
+}
+
 export function parseCxTagLoaderUrl(input: string): ParserResult<OracleCxTagConfig> {
   const url = absoluteUrl(input);
   if (!url) return { status: 'failed', reason: 'The loader URL is not valid.', warnings: [] };
@@ -52,15 +57,22 @@ export function matchDcApiUrl(input: string): { accountGuid: string } | undefine
 export function isDcsGifUrl(input: string): boolean {
   const url = absoluteUrl(input);
   return Boolean(
-    url && /(^|\/)dcs\.gif$/i.test(url.pathname) && /oracleinfinity\.io$/i.test(url.hostname),
+    url && /(^|\/)dcs\.gif$/i.test(url.pathname) && isOracleInfinityHost(url.hostname),
   );
+}
+
+export function matchDcsGifUrl(input: string): { accountGuid?: string } | undefined {
+  const url = absoluteUrl(input);
+  if (!url || !isDcsGifUrl(input)) return undefined;
+  const match = url.pathname.match(/^\/([^/]+)\/dcs\.gif$/i);
+  return { accountGuid: match ? decodeURIComponent(match[1]) : undefined };
 }
 
 export function matchInfinityLibraryUrl(
   input: string,
 ): { name: string; resourceType: 'javascript' | 'stylesheet' | 'other' } | undefined {
   const url = absoluteUrl(input);
-  if (!url || !/oracleinfinity\.io$/i.test(url.hostname)) return undefined;
+  if (!url || !isOracleInfinityHost(url.hostname)) return undefined;
   const fileName = decodeURIComponent(url.pathname.split('/').filter(Boolean).at(-1) ?? '');
   const extension = fileName.match(/\.([a-z0-9]+)$/i)?.[1].toLowerCase();
   const resourceType =
@@ -78,5 +90,5 @@ export function matchInfinityLibraryUrl(
 
 export function isInfinityLikeUrl(input: string): boolean {
   const url = absoluteUrl(input);
-  return Boolean(url && /oracleinfinity\.io$/i.test(url.hostname));
+  return Boolean(url && isOracleInfinityHost(url.hostname));
 }
