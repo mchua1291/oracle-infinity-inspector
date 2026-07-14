@@ -2,6 +2,23 @@
 
 All notable changes to Oracle Infinity Inspector are documented here.
 
+## 0.3.0 - Unreleased
+
+### Added
+
+- A typed platform-adapter contract for product identity, request routing, DOM loader detection, diagnostics, summaries, catalogs, expected profiles, UI terminology, debugging actions, and exports.
+- A validated platform registry that rejects duplicate and unknown adapter identifiers.
+- Platform identifiers on loader, network, session, popup, and versioned QA export data.
+- Extensible platform-specific loader configuration, network metadata, parameter origins, and source breakdowns.
+- Adapter contract tests covering network routing, DOM routing, metadata, registry validation, and expected-profile fields.
+
+### Changed
+
+- The active Infinity implementation is now registered as an adapter instead of being imported directly by browser runtime surfaces.
+- The overview, implementation, network-event, settings, popup, DevTools title, diagnostics, and export flows resolve their behavior and terminology from the active adapter.
+- JSON QA exports use schema version 2 and include explicit platform identity and generation metadata.
+- Settings migrate transparently from the original Infinity-specific storage key to a product-neutral key.
+
 ## 0.2.0 - 2026-07-13
 
 ### Added

@@ -7,9 +7,11 @@ import { SearchInput } from '../ui/SearchInput';
 export function ParameterTable({
   parameters,
   emptyTitle,
+  documentationLabel = 'Platform documentation',
 }: {
   parameters: ObservedParameter[];
   emptyTitle: string;
+  documentationLabel?: string;
 }) {
   const [search, setSearch] = useState('');
   const rows = useMemo(() => {
@@ -99,7 +101,7 @@ export function ParameterTable({
                       rel="noreferrer"
                       className="mt-1 block font-semibold text-sky-700 underline"
                     >
-                      Oracle documentation
+                      {documentationLabel}
                     </a>
                   )}
                   {latest.reportingNameNote && (

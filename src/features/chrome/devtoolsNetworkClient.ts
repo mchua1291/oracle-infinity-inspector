@@ -1,27 +1,23 @@
-import type { OracleParameterCatalogEntry } from '../models';
+import type { ParameterCatalogEntry, PlatformNetworkObservation } from '../models';
 import type { HarEntry, HarLog } from '../network/harTypes';
-import { parseNetworkRequest } from '../network/networkRequestParser';
+import { parseRequestWithPlatformAdapters } from '../platform/platformRuntime';
 
 export interface NetworkClientHandlers {
-  onObservations: (
-    entries: ReturnType<typeof parseNetworkRequest> extends infer _
-      ? import('../models').OracleNetworkObservation[]
-      : never,
-  ) => void;
+  onObservations: (entries: PlatformNetworkObservation[]) => void;
   onNavigated: (url: string) => void;
 }
 
-function parseEntry(entry: HarEntry, catalog: OracleParameterCatalogEntry[]) {
-  const result = parseNetworkRequest(entry, catalog);
+function parseEntry(entry: HarEntry, catalog: ParameterCatalogEntry[]) {
+  const result = parseRequestWithPlatformAdapters(entry, catalog);
   return result.status === 'failed' ? [] : result.data;
 }
 
 export function startDevtoolsNetworkClient(
   handlers: NetworkClientHandlers,
-  importedCatalog: OracleParameterCatalogEntry[] = [],
+  importedCatalog: ParameterCatalogEntry[] = [],
 ): () => void {
   const seen = new Set<string>();
-  const emitNew = (observations: import('../models').OracleNetworkObservation[]) => {
+  const emitNew = (observations: PlatformNetworkObservation[]) => {
     const fresh = observations.filter((observation) => {
       if (seen.has(observation.id)) return false;
       seen.add(observation.id);

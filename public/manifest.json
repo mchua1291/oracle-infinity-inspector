@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Oracle Infinity Inspector",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "minimum_chrome_version": "102",
   "description": "Inspect browser-visible Oracle Infinity tags, collection calls, observed parameters, and implementation warnings.",
   "icons": {

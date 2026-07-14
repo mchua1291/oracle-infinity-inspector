@@ -1,5 +1,9 @@
 # Known Limitations
 
+## Future platform generations
+
+The adapter boundary makes another browser-visible Oracle analytics generation additive, but it does not predict undocumented future endpoints or schemas. A new product is unsupported until an adapter is implemented from official documentation and synthetic or authorized evidence. Unknown explicit adapter identifiers fail rather than being interpreted as Infinity.
+
 ## Server-side DC API
 
 A Chromium extension sees browser traffic only. DC API calls made by a backend, edge function, batch job, mobile app, or other device cannot be detected. The UI therefore says **browser-visible DC API**, never all DC API.

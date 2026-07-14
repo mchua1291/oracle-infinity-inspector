@@ -1,18 +1,15 @@
-import { buildSummary } from '../diagnostics/diagnosticEngine';
-import { ORACLE_PARAMETER_CATALOG } from '../infinity/oracleParameterCatalog';
-import { summarizeInfinityLibraries } from '../infinity/librarySummary';
-import { summarizeInfinitySupportTraffic } from '../infinity/supportTrafficSummary';
-import { isCollectionObservation } from '../network/observationCollection';
+import { platformAdapterForSession } from '../platform/platformRegistry';
+import { buildPlatformSummary } from '../platform/platformDiagnosticsRuntime';
 import type {
   DiagnosticSession,
   DiagnosticWarning,
   ExportedDiagnosticReport,
   ExportedQaEvent,
-  OracleNetworkObservation,
+  PlatformNetworkObservation,
 } from '../models';
 
 function findingsForEvent(
-  event: OracleNetworkObservation,
+  event: PlatformNetworkObservation,
   warnings: DiagnosticWarning[],
 ): DiagnosticWarning[] {
   const evidenceIds = new Set([event.id, ...event.parameters.map((parameter) => parameter.id)]);
@@ -20,7 +17,7 @@ function findingsForEvent(
 }
 
 function createQaEvent(
-  event: OracleNetworkObservation,
+  event: PlatformNetworkObservation,
   sequence: number,
   qaFindings: DiagnosticWarning[],
 ): ExportedQaEvent {
@@ -59,45 +56,42 @@ function createQaEvent(
 
 export function createExportReport(
   session: DiagnosticSession,
-  extensionVersion = '0.1.0',
+  extensionVersion = '0.3.0',
 ): ExportedDiagnosticReport {
+  const adapter = platformAdapterForSession(session);
+  const { identity } = adapter;
   const events = session.networkObservations
-    .filter(isCollectionObservation)
+    .filter(adapter.isCollectionObservation)
     .map((event, index) =>
       createQaEvent(event, index + 1, findingsForEvent(event, session.warnings)),
     );
 
   return {
-    reportType: 'oracle-infinity-qa-report',
+    schemaVersion: 2,
+    reportType: identity.reportType,
+    platform: {
+      id: identity.id,
+      family: identity.family,
+      productName: identity.productName,
+      generation: identity.generation,
+    },
     generatedAt: new Date().toISOString(),
     extensionVersion,
-    catalogVersion: ORACLE_PARAMETER_CATALOG.version,
+    catalogVersion: adapter.catalogVersion,
     page: {
       url: session.pageUrl,
       captureStartedAt: session.startedAt,
       lastScanAt: session.scanTimestamp,
       captureMayBeIncomplete: session.captureMayBeIncomplete,
     },
-    summary: buildSummary(session),
+    summary: buildPlatformSummary(session),
     loaders: session.loaders,
     tagManagers: session.tagManagers ?? [],
-    libraries: summarizeInfinityLibraries(session.networkObservations),
-    supportTraffic: summarizeInfinitySupportTraffic(session.networkObservations),
+    libraries: adapter.summarizeLibraries(session.networkObservations),
+    supportTraffic: adapter.summarizeSupportTraffic(session.networkObservations),
     events,
     warnings: session.warnings,
-    notes: [
-      'Payload values, account GUIDs, and request URLs are exported exactly as observed.',
-      'Only browser-visible Oracle Infinity traffic is included; server-side DC API calls are outside extension scope.',
-      'DC API static parameters are inherited into each logical event and retain their origin metadata.',
-      'Static Infinity libraries are summarized separately and are not counted as data collection events.',
-      'Unverified Infinity support and service traffic is summarized separately and is not counted as data collection events.',
-      'Tag-manager evidence identifies standard page-level snippets but does not prove which manager deployed Infinity.',
-      ...(session.droppedObservationCount > 0
-        ? [
-            `${session.droppedObservationCount} older observations were removed after the session limit was reached.`,
-          ]
-        : []),
-    ],
+    notes: adapter.exportNotes(session),
   };
 }
 

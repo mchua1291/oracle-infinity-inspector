@@ -1,9 +1,11 @@
 import type { DiagnosticSession } from '../../features/models';
+import { platformAdapterForSession } from '../../features/platform/platformRegistry';
 import { Notice } from '../ui/Notice';
 import { ParameterTable } from './ParameterTable';
 import { UnknownParametersPanel } from './UnknownParametersPanel';
 
 export function CustomParametersTab({ session }: { session: DiagnosticSession }) {
+  const adapter = platformAdapterForSession(session);
   return (
     <div className="space-y-8">
       <section className="space-y-3">
@@ -14,12 +16,14 @@ export function CustomParametersTab({ session }: { session: DiagnosticSession })
           </p>
         </div>
         <Notice>
-          Custom classification means this parameter was not found in the bundled Oracle
-          documentation catalog and follows an implementation-defined naming pattern.
+          Custom classification means this parameter was not found in the bundled{' '}
+          {adapter.identity.documentationLabel} catalog and follows an implementation-defined naming
+          pattern.
         </Notice>
         <ParameterTable
           parameters={session.parameters.filter((item) => item.classification === 'custom')}
           emptyTitle="No custom parameters observed"
+          documentationLabel={adapter.identity.documentationLabel}
         />
       </section>
       <UnknownParametersPanel

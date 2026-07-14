@@ -1,10 +1,12 @@
 import type { DiagnosticSession, DiagnosticSeverity } from '../../features/models';
+import { platformAdapterForSession } from '../../features/platform/platformRegistry';
 import { Badge } from '../ui/Badge';
 import { Card } from '../ui/Card';
 import { EmptyState } from '../ui/EmptyState';
 
 const severities: DiagnosticSeverity[] = ['high', 'medium', 'low', 'info'];
 export function WarningsTab({ session }: { session: DiagnosticSession }) {
+  const adapter = platformAdapterForSession(session);
   if (!session.warnings.length)
     return (
       <EmptyState
@@ -50,7 +52,7 @@ export function WarningsTab({ session }: { session: DiagnosticSession }) {
                       rel="noreferrer"
                       className="mt-3 inline-block text-sm font-semibold text-sky-700 underline decoration-sky-300 underline-offset-2"
                     >
-                      Oracle guidance
+                      {adapter.identity.warningGuidanceLabel}
                     </a>
                   )}
                 </Card>

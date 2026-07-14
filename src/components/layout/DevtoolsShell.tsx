@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { DiagnosticSummary } from '../../features/models';
+import type { PlatformIdentity } from '../../features/platform/platformAdapter';
 import { Badge } from '../ui/Badge';
 
 export function DevtoolsShell({
@@ -8,12 +9,14 @@ export function DevtoolsShell({
   nav,
   inspectedTabActive,
   tabId,
+  platform,
 }: {
   summary: DiagnosticSummary;
   children: ReactNode;
   nav: ReactNode;
   inspectedTabActive?: boolean;
   tabId: number;
+  platform: PlatformIdentity;
 }) {
   return (
     <div className="min-h-screen bg-canvas">
@@ -24,7 +27,7 @@ export function DevtoolsShell({
           </div>
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#7b7570]">
-              Oracle Infinity
+              {platform.productName}
             </p>
             <h1 className="text-base font-semibold">Implementation Inspector</h1>
           </div>

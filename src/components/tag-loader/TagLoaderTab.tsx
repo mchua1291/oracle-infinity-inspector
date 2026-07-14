@@ -1,21 +1,21 @@
-import { summarizeInfinityLibraries } from '../../features/infinity/librarySummary';
-import { summarizeInfinitySupportTraffic } from '../../features/infinity/supportTrafficSummary';
-import { isCollectionObservation } from '../../features/network/observationCollection';
 import type { DiagnosticSession } from '../../features/models';
+import { platformAdapterForSession } from '../../features/platform/platformRegistry';
 import { Badge } from '../ui/Badge';
 import { Card } from '../ui/Card';
 import { EmptyState } from '../ui/EmptyState';
 
 export function TagLoaderTab({ session }: { session: DiagnosticSession }) {
-  const libraries = summarizeInfinityLibraries(session.networkObservations);
-  const supportTraffic = summarizeInfinitySupportTraffic(session.networkObservations);
+  const adapter = platformAdapterForSession(session);
+  const { identity } = adapter;
+  const libraries = adapter.summarizeLibraries(session.networkObservations);
+  const supportTraffic = adapter.summarizeSupportTraffic(session.networkObservations);
   const tagManagers = session.tagManagers ?? [];
-  const collectionObserved = session.networkObservations.some(isCollectionObservation);
+  const collectionObserved = session.networkObservations.some(adapter.isCollectionObservation);
   if (!session.loaders.length && !libraries.length && !tagManagers.length && !supportTraffic.length)
     return (
       <EmptyState
         title="No implementation evidence observed"
-        detail="No CX Tag loader, Infinity library, or standard tag-manager snippet was visible. Consent gates, restricted frames, late capture, or self-hosted tooling can limit this evidence."
+        detail={`No ${identity.loaderLabel}, ${identity.libraryLabel}, or standard tag-manager snippet was visible. Consent gates, restricted frames, late capture, or self-hosted tooling can limit this evidence.`}
       />
     );
 
@@ -27,13 +27,14 @@ export function TagLoaderTab({ session }: { session: DiagnosticSession }) {
             <h2 className="text-sm font-semibold">Tag-manager evidence</h2>
             <p className="mt-1 text-xs text-stone-500">
               Standard vendor snippets identify a manager present on the page; they do not prove
-              which manager deployed Infinity.
+              which manager deployed {identity.shortName}.
             </p>
           </div>
           {!session.loaders.length && collectionObserved && (
             <div className="mb-3 rounded-lg border border-sky-200 bg-sky-50 p-3 text-xs text-sky-950">
-              Infinity collection calls were observed without a DOM-visible CX Tag loader. The tag
-              manager evidence below is a plausible implementation path, not proof of attribution.
+              {identity.collectionLabel} calls were observed without a DOM-visible{' '}
+              {identity.loaderLabel}. The tag manager evidence below is a plausible implementation
+              path, not proof of attribution.
             </div>
           )}
           <div className="grid gap-3 xl:grid-cols-3">
@@ -69,7 +70,7 @@ export function TagLoaderTab({ session }: { session: DiagnosticSession }) {
 
       <section>
         <div className="mb-3">
-          <h2 className="text-sm font-semibold">CX Tag loader evidence</h2>
+          <h2 className="text-sm font-semibold">{identity.loaderLabel} evidence</h2>
           <p className="mt-1 text-xs text-stone-500">
             DOM and inline-script evidence used for load-mode inference.
           </p>
@@ -98,26 +99,12 @@ export function TagLoaderTab({ session }: { session: DiagnosticSession }) {
                   </Badge>
                 </div>
                 <dl className="mt-4 grid grid-cols-[9rem_1fr] gap-x-3 gap-y-2 text-sm">
-                  <dt className="text-stone-500">DOM path</dt>
-                  <dd className="break-all font-mono text-xs">{loader.location.path}</dd>
-                  <dt className="text-stone-500">Source</dt>
-                  <dd className="break-all font-mono text-xs">
-                    {loader.sourceUrl ?? 'Inline loader evidence'}
-                  </dd>
-                  <dt className="text-stone-500">Account GUID</dt>
-                  <dd className="break-all font-mono">
-                    {loader.config.accountGuid || 'Unavailable'}
-                  </dd>
-                  <dt className="text-stone-500">Tag ID</dt>
-                  <dd>{loader.config.tagId ?? 'Unavailable'}</dd>
-                  <dt className="text-stone-500">_ora.config</dt>
-                  <dd>{loader.config.config ?? 'Not present'}</dd>
-                  <dt className="text-stone-500">Environment guess</dt>
-                  <dd>{loader.config.environmentGuess}</dd>
-                  <dt className="text-stone-500">Attributes</dt>
-                  <dd>
-                    async={String(loader.async)} · defer={String(loader.defer)}
-                  </dd>
+                  {adapter.loaderDetails(loader).map((detail) => (
+                    <div className="contents" key={detail.label}>
+                      <dt className="text-stone-500">{detail.label}</dt>
+                      <dd className="break-all font-mono text-xs">{detail.value}</dd>
+                    </div>
+                  ))}
                 </dl>
                 <div className="mt-4 border-t border-stone-100 pt-4">
                   <h4 className="text-xs font-semibold uppercase tracking-wider text-stone-500">
@@ -136,7 +123,7 @@ export function TagLoaderTab({ session }: { session: DiagnosticSession }) {
           </div>
         ) : (
           <p className="rounded-lg bg-stone-50 p-3 text-xs text-stone-500">
-            No CX Tag loader remained visible in the DOM.
+            No {identity.loaderLabel} remained visible in the DOM.
           </p>
         )}
       </section>
@@ -144,10 +131,10 @@ export function TagLoaderTab({ session }: { session: DiagnosticSession }) {
       {libraries.length > 0 && (
         <section>
           <div className="mb-3">
-            <h2 className="text-sm font-semibold">Infinity libraries</h2>
+            <h2 className="text-sm font-semibold">{identity.libraryLabelPlural}</h2>
             <p className="mt-1 text-xs text-stone-500">
-              Static Oracle Infinity resources are summarized separately from data collection calls.
-              HTTP 304 means the cached library was still valid.
+              Static {identity.productName} resources are summarized separately from data collection
+              calls. HTTP 304 means the cached library was still valid.
             </p>
           </div>
           <Card className="overflow-x-auto p-0">
@@ -197,10 +184,11 @@ export function TagLoaderTab({ session }: { session: DiagnosticSession }) {
       {supportTraffic.length > 0 && (
         <section>
           <div className="mb-3">
-            <h2 className="text-sm font-semibold">Infinity support and service traffic</h2>
+            <h2 className="text-sm font-semibold">{identity.supportTrafficLabel}</h2>
             <p className="mt-1 text-xs text-stone-500">
-              Oracle Infinity-hosted requests that do not match a verified collection or static
-              library pattern. They are implementation evidence and are not counted as events.
+              {identity.productName}-hosted requests that do not match a verified collection or
+              static library pattern. They are implementation evidence and are not counted as
+              events.
             </p>
           </div>
           <Card className="overflow-x-auto p-0">

@@ -1,4 +1,6 @@
 import type { DiagnosticSession, ExportedQaEvent, ObservedParameter } from '../models';
+import type { PlatformAdapter } from '../platform/platformAdapter';
+import { platformAdapterForSession } from '../platform/platformRegistry';
 import { createExportReport } from './exportJson';
 
 function text(value: string | number | null | undefined): string {
@@ -20,32 +22,36 @@ function eventName(event: ExportedQaEvent): string {
     .join(' ');
 }
 
-function parameterSection(title: string, parameters: ObservedParameter[]): string[] {
+function parameterSection(
+  title: string,
+  parameters: ObservedParameter[],
+  adapter: PlatformAdapter,
+): string[] {
   if (!parameters.length) return [`#### ${title} (0)`, '', '_None observed._', ''];
   return [
     `#### ${title} (${parameters.length})`,
     '',
-    '| Parameter | Observed value | Origin | Oracle definition / naming |',
+    `| Parameter | Observed value | Origin | ${adapter.identity.productName} definition / naming |`,
     '| --- | --- | --- | --- |',
     ...parameters.map(
       (parameter) =>
-        `| ${text(parameter.name)} | ${parameter.value === '' ? '**empty string**' : text(parameter.value)} | ${text(parameter.origin)} | ${parameterDefinition(parameter)} |`,
+        `| ${text(parameter.name)} | ${parameter.value === '' ? '**empty string**' : text(parameter.value)} | ${text(parameter.origin)} | ${parameterDefinition(parameter, adapter)} |`,
     ),
     '',
   ];
 }
 
-function parameterDefinition(parameter: ObservedParameter): string {
+function parameterDefinition(parameter: ObservedParameter, adapter: PlatformAdapter): string {
   const label = parameter.catalogDisplayName
     ? `${parameter.catalogDisplayName}: ${parameter.catalogDescription ?? ''}`
     : (parameter.catalogDescription ?? parameter.namingPattern ?? 'Unavailable');
   const source = parameter.catalogSourceUrl
-    ? ` ([Oracle documentation](${parameter.catalogSourceUrl}))`
+    ? ` ([${adapter.identity.documentationLabel}](${parameter.catalogSourceUrl}))`
     : '';
   return `${text(label)}${source}`;
 }
 
-function eventSection(event: ExportedQaEvent): string[] {
+function eventSection(event: ExportedQaEvent, adapter: PlatformAdapter): string[] {
   return [
     `## Event ${event.sequence} — ${eventName(event)}`,
     '',
@@ -53,16 +59,17 @@ function eventSection(event: ExportedQaEvent): string[] {
     `- Source: ${text(event.sourceType)}`,
     `- Request: ${text(event.request.method)} ${text(event.request.url)}`,
     `- Response: ${text(event.request.responseStatus)}`,
-    `- Account GUID: ${text(event.request.accountGuid)}`,
-    `- wt.dl: ${text(event.wtDl)}`,
+    ...adapter
+      .exportEventDetails(event)
+      .map((detail) => `- ${detail.label}: ${text(detail.value)}`),
     `- Payload parse: ${event.parseStatus}`,
     `- Parameters: ${event.payload.parameterCount}`,
     '',
     '### Complete payload',
     '',
-    ...parameterSection('Out-of-the-box parameters', event.payload.outOfTheBox),
-    ...parameterSection('Custom parameters', event.payload.custom),
-    ...parameterSection('Needs review', event.payload.needsReview),
+    ...parameterSection('Out-of-the-box parameters', event.payload.outOfTheBox, adapter),
+    ...parameterSection('Custom parameters', event.payload.custom, adapter),
+    ...parameterSection('Needs review', event.payload.needsReview, adapter),
     '### Payload QA findings',
     '',
     ...(event.payload.emptyValues.length
@@ -83,7 +90,7 @@ function eventSection(event: ExportedQaEvent): string[] {
     ...(event.qaFindings.length
       ? event.qaFindings.map(
           (finding) =>
-            `- **${finding.severity.toUpperCase()} — ${text(finding.title)}:** ${text(finding.message)} Recommendation: ${text(finding.recommendation)}${finding.sourceUrl ? ` ([Oracle guidance](${finding.sourceUrl}))` : ''}`,
+            `- **${finding.severity.toUpperCase()} — ${text(finding.title)}:** ${text(finding.message)} Recommendation: ${text(finding.recommendation)}${finding.sourceUrl ? ` ([${adapter.identity.documentationLabel}](${finding.sourceUrl}))` : ''}`,
         )
       : ['- None.']),
     '',
@@ -91,29 +98,25 @@ function eventSection(event: ExportedQaEvent): string[] {
 }
 
 export function exportReportMarkdown(session: DiagnosticSession, version?: string): string {
+  const adapter = platformAdapterForSession(session);
+  const { identity } = adapter;
   const report = createExportReport(session, version);
   const { summary } = report;
   return [
-    '# Oracle Infinity QA Report',
+    `# ${identity.productName} QA Report`,
     '',
     `Generated: ${report.generatedAt}`,
     `Page: ${text(report.page.url)}`,
     `Capture started: ${report.page.captureStartedAt}`,
     `Extension: ${report.extensionVersion}`,
     `Catalog: ${report.catalogVersion}`,
+    `Platform adapter: ${report.platform.id} (${report.platform.generation})`,
     '',
     '## QA summary',
     '',
-    `- CX Tag status: ${summary.tagStatus}`,
-    `- Loaders observed: ${summary.loaderCount}`,
-    `- Infinity libraries observed: ${summary.libraryCount} (${summary.libraryIssueCount} with load issues)`,
-    `- Tag managers observed: ${summary.tagManagerCount}`,
-    `- Complete collection events documented: ${report.events.length}`,
-    `- CX Tag events: ${summary.cxTagEventCount}`,
-    `- Browser-visible DC API events: ${summary.dcApiEventCount}`,
-    `- Infinity support/service requests: ${summary.supportTrafficCount}`,
-    `- Out-of-the-box/custom/needs-review parameter observations: ${summary.standardParameterCount}/${summary.customParameterCount}/${summary.unknownParameterCount}`,
-    `- Diagnostic warnings: ${summary.warningCount}`,
+    ...adapter
+      .summaryDetails(summary, report.events.length)
+      .map((detail) => `- ${detail.label}: ${text(detail.value)}`),
     `- Capture may be incomplete: ${report.page.captureMayBeIncomplete ? 'yes' : 'no'}`,
     '',
     '## Implementation evidence',
@@ -127,9 +130,9 @@ export function exportReportMarkdown(session: DiagnosticSession, version?: strin
         )
       : ['- No standard tag-manager snippet observed.']),
     '',
-    '_Tag-manager presence is an implementation clue, not proof that it deployed Infinity._',
+    `_Tag-manager presence is an implementation clue, not proof that it deployed ${identity.shortName}._`,
     '',
-    '### Infinity libraries',
+    `### ${identity.libraryLabelPlural}`,
     '',
     ...(report.libraries.length
       ? [
@@ -140,9 +143,9 @@ export function exportReportMarkdown(session: DiagnosticSession, version?: strin
               `| ${text(library.name)} | ${library.resourceType} | ${library.state === 'cached' ? 'cached / not modified' : library.state} | ${library.statusCodes.join(', ') || 'Unavailable'} | ${library.requestCount} |`,
           ),
         ]
-      : ['- No Infinity static libraries observed.']),
+      : [`- No ${identity.libraryLabelPlural.toLowerCase()} observed.`]),
     '',
-    '### Infinity support and service traffic',
+    `### ${identity.supportTrafficLabel}`,
     '',
     ...(report.supportTraffic.length
       ? [
@@ -153,7 +156,7 @@ export function exportReportMarkdown(session: DiagnosticSession, version?: strin
               `| ${text(entry.url)} | ${text(entry.methods.join(', '))} | ${entry.state} | ${entry.statusCodes.join(', ') || 'Unavailable'} | ${entry.requestCount} |`,
           ),
         ]
-      : ['- No unverified Infinity support or service traffic observed.']),
+      : [`- No unverified ${identity.supportTrafficLabel.toLowerCase()} observed.`]),
     '',
     '## Event index',
     '',
@@ -168,13 +171,13 @@ export function exportReportMarkdown(session: DiagnosticSession, version?: strin
         ]
       : ['_No collection events were observed._']),
     '',
-    ...report.events.flatMap(eventSection),
+    ...report.events.flatMap((event) => eventSection(event, adapter)),
     '## Session diagnostics',
     '',
     ...(report.warnings.length
       ? report.warnings.map(
           (warning) =>
-            `- **${warning.severity.toUpperCase()} — ${text(warning.title)}:** ${text(warning.message)} Recommendation: ${text(warning.recommendation)}${warning.sourceUrl ? ` ([Oracle guidance](${warning.sourceUrl}))` : ''}`,
+            `- **${warning.severity.toUpperCase()} — ${text(warning.title)}:** ${text(warning.message)} Recommendation: ${text(warning.recommendation)}${warning.sourceUrl ? ` ([${identity.documentationLabel}](${warning.sourceUrl}))` : ''}`,
         )
       : ['- No diagnostic warnings generated.']),
     '',

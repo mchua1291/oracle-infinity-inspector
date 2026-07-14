@@ -1,12 +1,16 @@
 import { useSyncExternalStore } from 'react';
 import type { BackgroundTabSession, ExtensionMessage } from '../features/chrome/chromeMessageTypes';
-import { detectOraGlobal, getInspectedPageUrl } from '../features/chrome/inspectedWindowClient';
-import { withDiagnostics } from '../features/diagnostics/diagnosticEngine';
+import {
+  detectInspectedExpression,
+  getInspectedPageUrl,
+} from '../features/chrome/inspectedWindowClient';
+import { withPlatformDiagnostics } from '../features/platform/platformDiagnosticsRuntime';
+import { platformAdapterForSession } from '../features/platform/platformRegistry';
 import {
   DEFAULT_SETTINGS,
   type DiagnosticSession,
   type ExtensionSettings,
-  type OracleNetworkObservation,
+  type PlatformNetworkObservation,
 } from '../features/models';
 import { loadSettings, saveSettings } from '../features/settings/settingsStore';
 import { mergeObservations } from '../features/network/observationCollection';
@@ -58,6 +62,12 @@ function subscribe(listener: () => void) {
   return () => listeners.delete(listener);
 }
 
+function detectPageContext(session: DiagnosticSession): Promise<boolean | undefined> {
+  return detectInspectedExpression(
+    platformAdapterForSession(session).identity.pageContextExpression,
+  );
+}
+
 function hydrate(source: BackgroundTabSession, current: DiagnosticSession): DiagnosticSession {
   const merged = mergeObservations(current.networkObservations, source.observations);
   const networkObservations = merged.observations;
@@ -78,7 +88,7 @@ function hydrate(source: BackgroundTabSession, current: DiagnosticSession): Diag
         })),
     ].map((entry) => [entry.id, entry]),
   );
-  return withDiagnostics(
+  return withPlatformDiagnostics(
     {
       ...current,
       pageUrl: source.pageUrl || current.pageUrl,
@@ -130,7 +140,7 @@ export const diagnosticsActions = {
       } satisfies ExtensionMessage);
       await refreshFromBackground();
       if (settings.enablePageContextDetection)
-        state.session.oraGlobalDetected = await detectOraGlobal();
+        state.session.pageContextDetected = await detectPageContext(state.session);
       setState({ ...state, ready: true });
     } catch (error) {
       setState({
@@ -141,7 +151,7 @@ export const diagnosticsActions = {
       });
     }
   },
-  addObservations(observations: OracleNetworkObservation[]) {
+  addObservations(observations: PlatformNetworkObservation[]) {
     const source: BackgroundTabSession = {
       schemaVersion: 1,
       pageUrl: state.session.pageUrl,
@@ -163,7 +173,7 @@ export const diagnosticsActions = {
     const inspectedPageUrl = (await getInspectedPageUrl()) ?? url;
     setState({
       ...state,
-      session: withDiagnostics(
+      session: withPlatformDiagnostics(
         blankSession(inspectedPageUrl, false),
         state.settings.expectedProfiles,
       ),
@@ -193,7 +203,7 @@ export const diagnosticsActions = {
           detail: `${state.session.pageUrl} → ${pageUrl}`,
         }
       : undefined;
-    const session = withDiagnostics(
+    const session = withPlatformDiagnostics(
       {
         ...state.session,
         pageUrl,
@@ -218,7 +228,7 @@ export const diagnosticsActions = {
     await chrome.runtime.sendMessage({ type: 'CLEAR_SESSION', tabId } satisfies ExtensionMessage);
     setState({
       ...state,
-      session: withDiagnostics(
+      session: withPlatformDiagnostics(
         blankSession(state.session.pageUrl, captureMayBeIncomplete),
         state.settings.expectedProfiles,
       ),
@@ -231,9 +241,10 @@ export const diagnosticsActions = {
       tabId,
       enabled: settings.enableDomMutationMonitoring,
     } satisfies ExtensionMessage);
-    const session = withDiagnostics(state.session, settings.expectedProfiles);
-    if (settings.enablePageContextDetection) session.oraGlobalDetected = await detectOraGlobal();
-    else session.oraGlobalDetected = undefined;
+    const session = withPlatformDiagnostics(state.session, settings.expectedProfiles);
+    if (settings.enablePageContextDetection)
+      session.pageContextDetected = await detectPageContext(session);
+    else session.pageContextDetected = undefined;
     setState({ ...state, settings, session });
   },
   refreshFromBackground,

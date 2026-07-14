@@ -469,6 +469,10 @@ export function buildSummary(session: DiagnosticSession): DiagnosticSummary {
     dcApiEventCount: collection.filter((event) => event.sourceType === 'dcapi-browser-visible')
       .length,
     supportTrafficCount: session.networkObservations.filter(isSupportObservation).length,
+    sourceBreakdown: collection.reduce<Record<string, number>>((counts, event) => {
+      counts[event.sourceType] = (counts[event.sourceType] ?? 0) + 1;
+      return counts;
+    }, {}),
     standardParameterCount: session.parameters.filter((item) => item.classification === 'standard')
       .length,
     customParameterCount: session.parameters.filter((item) => item.classification === 'custom')

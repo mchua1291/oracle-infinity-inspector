@@ -1,12 +1,15 @@
 import type { ExtensionMessage } from '../features/chrome/chromeMessageTypes';
-import { scanDocumentForCxTags, scanScriptTag } from '../features/dom/scriptTagScanner';
+import {
+  scanDocumentWithPlatformDomAdapters,
+  scanScriptWithPlatformDomAdapters,
+} from '../features/platform/platformDomRegistry';
 import {
   scanDocumentForTagManagers,
   scanTagManagerElement,
 } from '../features/dom/tagManagerScanner';
-import type { OracleCxTagLoader, TagManagerObservation } from '../features/models';
+import type { PlatformLoaderObservation, TagManagerObservation } from '../features/models';
 
-const observed = new Map<string, OracleCxTagLoader>();
+const observed = new Map<string, PlatformLoaderObservation>();
 const observedTagManagers = new Map<string, TagManagerObservation>();
 let monitorEnabled = true;
 let lastUrl = location.href;
@@ -14,8 +17,8 @@ let active = false;
 let observer: MutationObserver | undefined;
 let routeListenersInstalled = false;
 
-function loaderKey(loader: OracleCxTagLoader): string {
-  return `${loader.sourceUrl ?? 'inline'}|${loader.location.path}`;
+function loaderKey(loader: PlatformLoaderObservation): string {
+  return `${loader.platformId ?? 'unknown'}|${loader.sourceUrl ?? 'inline'}|${loader.location.path}`;
 }
 
 function tagManagerKey(manager: TagManagerObservation): string {
@@ -34,7 +37,8 @@ function publish() {
 }
 
 function scanAll() {
-  for (const loader of scanDocumentForCxTags()) observed.set(loaderKey(loader), loader);
+  for (const loader of scanDocumentWithPlatformDomAdapters())
+    observed.set(loaderKey(loader), loader);
   for (const manager of scanDocumentForTagManagers())
     observedTagManagers.set(tagManagerKey(manager), manager);
   publish();
@@ -75,11 +79,11 @@ function activateDomInspection(enableMutations: boolean) {
             ? [node]
             : Array.from(node.querySelectorAll('script'));
           for (const candidate of scripts) {
-            const loader = scanScriptTag(
+            const loaders = scanScriptWithPlatformDomAdapters(
               candidate as HTMLScriptElement,
               document.readyState !== 'loading',
             );
-            if (loader) {
+            for (const loader of loaders) {
               observed.set(loaderKey(loader), loader);
               changed = true;
             }

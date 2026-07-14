@@ -86,7 +86,8 @@ Never run this fixture with Oracle request blocking disabled.
 2. Acknowledge that the report contains raw client data, then export the complete JSON report and the readable Markdown report.
 3. Confirm every captured event contains request metadata, event-scoped QA findings, and all observed parameters grouped as out-of-the-box, custom, or needs review.
 4. Confirm raw values, request URLs, and account GUIDs are preserved. Confirm empty strings and nulls are explicitly identified as potential issues.
-5. Handle or delete exported client QA reports according to the approved retention process.
+5. Confirm JSON reports identify schema version 2 and the expected `platform.id`; adapter tests and fixtures must never contain real client traffic.
+6. Handle or delete exported client QA reports according to the approved retention process.
 
 ## Release checklist
 
