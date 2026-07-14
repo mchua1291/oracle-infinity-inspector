@@ -15,6 +15,7 @@ All notable changes to Oracle Infinity Inspector are documented here.
 
 - Client installation guidance now leads with the prebuilt release package while retaining source-build instructions for contributors.
 - Public documentation now includes a visual product tour and a sanitized demonstration workflow.
+- Repository documentation now states explicitly that no open-source license is granted.
 
 ### Fixed
 

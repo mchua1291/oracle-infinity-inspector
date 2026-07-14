@@ -130,4 +130,10 @@ Generated output is written to `dist` and is intentionally not committed. After 
 - [Contributing](CONTRIBUTING.md)
 - [Security policy](SECURITY.md)
 
+## License status
+
+No open-source license is currently granted for this project. Public availability of the source
+does not grant permission to use, modify, or redistribute it. Contact the repository owner for
+permission before using the source or packaged extension outside an authorized evaluation.
+
 This project is an independent QA utility and is not an Oracle product. Oracle and Oracle Infinity are trademarks of Oracle and/or its affiliates.
