@@ -50,6 +50,8 @@ Hash changes and popstate events are observed. Other SPA route changes are infer
 
 ## Browser compatibility
 
-The build targets Chromium Manifest V3 and Chrome DevTools APIs. Firefox and Safari extension architectures are not supported. Edge and other Chromium browsers may work but are not part of the verified compatibility scope. Chrome internal pages, the Chrome Web Store, and pages where content scripts are prohibited cannot be inspected fully.
+The build targets Chromium Manifest V3 and standard Chrome extension APIs. Microsoft Edge 102+ is the verified compatibility target. Google Chrome 102+ is expected-compatible but is not yet part of the automated browser test matrix. Brave, Vivaldi, Opera, and other Chromium 102+ browsers are expected to load the extension but remain unverified because DevTools placement, enterprise policies, and API behavior can vary. Version 102 is the minimum because the extension uses `chrome.storage.session`.
 
-A DevTools instance is attached to one browser tab. Switching to another Edge or Chrome tab cannot reattach the existing DevTools panel; open DevTools on the new tab instead. Navigation within the attached tab is synchronized through navigation events, focus/visibility checks, and a five-second visible-panel backstop.
+Firefox and Safari are unsupported because their extension and DevTools architectures require a separate port. Browser internal pages, extension stores, and pages where content scripts are prohibited cannot be inspected fully.
+
+A DevTools instance is attached to one browser tab. Switching to another tab cannot reattach the existing DevTools panel; open DevTools on the new tab instead. Navigation within the attached tab is synchronized through navigation events, focus/visibility checks, and a five-second visible-panel backstop.

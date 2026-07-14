@@ -16,7 +16,7 @@ The popup cannot open a particular DevTools panel or capture complete network pa
 
 ## Start a complete capture
 
-1. Open the target page in Edge.
+1. Open the target page in Microsoft Edge 102+ (verified) or a compatible Chromium 102+ browser.
 2. Open DevTools on that tab.
 3. Select the **Oracle Infinity** panel.
 4. Select **Clear session and reload inspected page** in Overview.

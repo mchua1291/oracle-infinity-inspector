@@ -2,6 +2,12 @@
 
 All notable changes to Oracle Infinity Inspector are documented here.
 
+## Unreleased
+
+### Changed
+
+- Browser documentation now distinguishes verified Microsoft Edge support, expected Google Chrome compatibility, best-effort support for other Chromium browsers, and unsupported Firefox/Safari architectures.
+
 ## 0.4.0 - 2026-07-14
 
 ### Added
