@@ -19,6 +19,7 @@ All notable changes to Oracle Infinity Inspector are documented here.
 ### Fixed
 
 - Initial DevTools network capture now consumes Edge's HAR-log callback shape correctly and safely handles malformed responses.
+- The Oracle Infinity DevTools tab now displays the extension mark when the tab strip is crowded.
 
 ## 0.3.0 - 2026-07-13
 
