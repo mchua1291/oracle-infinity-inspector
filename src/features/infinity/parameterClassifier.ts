@@ -15,6 +15,7 @@ interface ParameterInput {
   eventId: string;
   eventUrl?: string;
   origin: ObservedParameter['origin'];
+  occurrence?: number;
 }
 
 export interface ParameterClassificationResult {
@@ -56,6 +57,7 @@ export function createObservedParameter(
   input: ParameterInput,
   importedCatalog: OracleParameterCatalogEntry[] = [],
 ): ObservedParameter {
+  const { occurrence = 0, ...observed } = input;
   const classification = classifyParameterName(input.name, importedCatalog);
   const sensitive = scanSensitiveValue(input.name, input.value);
   const catalogSensitivity = classification.catalogEntry?.sensitivity;
@@ -68,8 +70,8 @@ export function createObservedParameter(
         ? catalogSensitivity
         : sensitive.sensitivity;
   return {
-    id: `${input.eventId}:${input.origin}:${input.name}:${crypto.randomUUID()}`,
-    ...input,
+    id: `${input.eventId}:${input.origin}:${encodeURIComponent(input.name)}:${occurrence}`,
+    ...observed,
     classification: classification.classification,
     sensitivity,
     catalogDisplayName: classification.catalogEntry?.displayName,

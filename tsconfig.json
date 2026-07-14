@@ -17,5 +17,12 @@
     "jsx": "react-jsx",
     "types": ["chrome", "vitest/globals", "@testing-library/jest-dom"]
   },
-  "include": ["src", "tests", "vite.config.ts", "tailwind.config.ts", "eslint.config.js"]
+  "include": [
+    "src",
+    "tests",
+    "vite.config.ts",
+    "vite.content.config.ts",
+    "tailwind.config.ts",
+    "eslint.config.js"
+  ]
 }

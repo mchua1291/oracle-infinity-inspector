@@ -8,6 +8,7 @@ The extension is distributed as source code and loaded as an unpacked extension.
 
 - Detects Oracle CX Tag loaders and common tag-manager implementation clues.
 - Separates Infinity libraries and support traffic from data collection events.
+- Deduplicates overlapping HAR and live-network observations using deterministic request identities.
 - Captures browser-visible `dcs.gif` and DC API v3 event payloads.
 - Classifies parameters using Oracle's documented parameter reference.
 - Highlights empty strings, explicit nulls, raw email addresses, and other QA concerns.
@@ -50,6 +51,9 @@ See [Installation](docs/INSTALLATION.md) for updating, removal, Chrome instructi
 7. Configure an expected domain profile in **Settings** when validating a known implementation.
 8. Export JSON for machine-readable evidence or Markdown for a readable QA report.
 
+The Export tab requires a local acknowledgement that the report contains raw client data before
+download or clipboard actions are enabled.
+
 Reports contain raw browser-visible values and may contain client identifiers or other client data. Store and delete them according to the client's approved QA evidence and retention process.
 
 See [Usage](docs/USAGE.md) for a detailed walkthrough and [QA Guide](docs/QA_GUIDE.md) for safe fixture and real-site testing.
@@ -72,7 +76,12 @@ npm run typecheck
 npm test
 npm run lint
 npm run build
+npm run smoke:edge
 ```
+
+`smoke:edge` is an optional visible-browser test that requires Microsoft Edge. It builds the
+extension, loads it into an isolated temporary Edge profile, blocks Oracle fixture traffic, verifies
+panel-activated DOM capture, and renders the popup.
 
 Generated output is written to `dist` and is intentionally not committed. After rebuilding, reload the unpacked extension from `edge://extensions` and reopen DevTools.
 

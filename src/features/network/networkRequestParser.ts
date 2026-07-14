@@ -5,6 +5,7 @@ import type {
 } from '../models';
 import {
   matchDcApiUrl,
+  matchDcsGifUrl,
   matchInfinityLibraryUrl,
   parseCxTagLoaderUrl,
 } from '../infinity/infinityUrlPatterns';
@@ -13,6 +14,27 @@ import { classifySourceType } from '../infinity/sourceTypeClassifier';
 import type { HarEntry } from './harTypes';
 import { parseDcApiBody } from './dcapiParser';
 import { parseDcsGif } from './dcsGifParser';
+
+function stableHash(value: string): string {
+  let hash = 0xcbf29ce484222325n;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= BigInt(value.charCodeAt(index));
+    hash = BigInt.asUintN(64, hash * 0x100000001b3n);
+  }
+  return hash.toString(16).padStart(16, '0');
+}
+
+export function networkRequestFingerprint(entry: HarEntry): string {
+  return stableHash(
+    [
+      entry.startedDateTime ?? '',
+      entry.request.method?.toUpperCase() ?? 'GET',
+      entry.request.url,
+      entry.request.postData?.mimeType ?? '',
+      entry.request.postData?.text ?? '',
+    ].join('\u001f'),
+  );
+}
 
 function base(entry: HarEntry, sourceType: NonNullable<ReturnType<typeof classifySourceType>>) {
   const timestamp = entry.startedDateTime ?? new Date().toISOString();
@@ -42,12 +64,13 @@ export function parseNetworkRequest(
     };
   }
   const common = base(entry, sourceType);
+  const requestId = networkRequestFingerprint(entry);
   const requestFailed =
     common.statusCode >= 400 ? [`Oracle request returned HTTP ${common.statusCode}.`] : [];
 
   if (sourceType === 'cx-tag-loader') {
     const parsed = parseCxTagLoaderUrl(entry.request.url);
-    const id = `network-loader:${crypto.randomUUID()}`;
+    const id = `network-loader:${requestId}`;
     const observation: OracleNetworkObservation = {
       id,
       ...common,
@@ -63,7 +86,7 @@ export function parseNetworkRequest(
 
   if (sourceType === 'infinity-library') {
     const library = matchInfinityLibraryUrl(entry.request.url);
-    const id = `library:${crypto.randomUUID()}`;
+    const id = `library:${requestId}`;
     const observation: OracleNetworkObservation = {
       id,
       ...common,
@@ -81,9 +104,10 @@ export function parseNetworkRequest(
   if (sourceType === 'cx-tag-network') {
     const parsed = parseDcsGif(entry.request.url);
     if (parsed.status === 'failed') return parsed;
-    const id = `dcs:${crypto.randomUUID()}`;
+    const id = `dcs:${requestId}`;
+    const accountGuid = matchDcsGifUrl(entry.request.url)?.accountGuid;
     const parameters = Object.entries(parsed.data.parameters).flatMap(([name, values]) =>
-      values.map((value) =>
+      values.map((value, occurrence) =>
         createObservedParameter(
           {
             name,
@@ -93,6 +117,7 @@ export function parseNetworkRequest(
             eventId: id,
             eventUrl: entry.request.url,
             origin: 'query-string',
+            occurrence,
           },
           importedCatalog,
         ),
@@ -101,6 +126,7 @@ export function parseNetworkRequest(
     const observation: OracleNetworkObservation = {
       id,
       ...common,
+      accountGuid,
       eventKind: parsed.data.eventKind,
       wtDl: parsed.data.wtDl,
       parameterCount: parameters.length,
@@ -113,9 +139,30 @@ export function parseNetworkRequest(
 
   if (sourceType === 'dcapi-browser-visible') {
     const accountGuid = matchDcApiUrl(entry.request.url)?.accountGuid;
+    if ((entry.request.method ?? 'GET').toUpperCase() !== 'POST') {
+      const id = `dcapi:${requestId}`;
+      const reason = `The documented DC API v3 collection endpoint expects POST, but ${entry.request.method ?? 'GET'} was observed.`;
+      return {
+        status: 'partial',
+        data: [
+          {
+            id,
+            ...common,
+            accountGuid,
+            eventKind: 'dcapi-batch',
+            parameterCount: 0,
+            requestBodyParseStatus: 'partial',
+            warnings: [...requestFailed, reason],
+            parameters: [],
+          },
+        ],
+        reason,
+        warnings: [reason],
+      };
+    }
     const parsed = parseDcApiBody(entry.request.postData?.text);
     if (parsed.status === 'failed') {
-      const id = `dcapi:${crypto.randomUUID()}`;
+      const id = `dcapi:${requestId}`;
       const observation: OracleNetworkObservation = {
         id,
         ...common,
@@ -134,8 +181,8 @@ export function parseNetworkRequest(
       };
     }
     const observations = parsed.data.events.map((event) => {
-      const id = `dcapi:${crypto.randomUUID()}:${event.index}`;
-      const parameters = Object.entries(event.parameters).map(([name, value]) =>
+      const id = `dcapi:${requestId}:${event.index}`;
+      const parameters = Object.entries(event.parameters).map(([name, value], occurrence) =>
         createObservedParameter(
           {
             name,
@@ -145,6 +192,7 @@ export function parseNetworkRequest(
             eventId: id,
             eventUrl: entry.request.url,
             origin: event.origins[name],
+            occurrence,
           },
           importedCatalog,
         ),
@@ -166,7 +214,7 @@ export function parseNetworkRequest(
       : { status: 'success', data: observations, warnings: requestFailed };
   }
 
-  const id = `unknown:${crypto.randomUUID()}`;
+  const id = `unknown:${requestId}`;
   return {
     status: 'success',
     data: [

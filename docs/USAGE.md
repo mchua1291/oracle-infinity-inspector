@@ -67,7 +67,7 @@ High-severity findings include malformed requests and raw sensitive values such 
 - **Markdown** creates a readable QA report suitable for issue descriptions or review notes.
 - **Copy readable QA report** places the Markdown version on the clipboard.
 
-Exports contain raw values, request URLs, and identifiers. Review the file before sharing it, use an approved storage location, and follow the client's retention requirements.
+Exports contain raw values, request URLs, and identifiers. Download and copy actions remain disabled until you acknowledge the raw client-data notice. Review the file before sharing it, use an approved storage location, and follow the client's retention requirements.
 
 ### Settings
 

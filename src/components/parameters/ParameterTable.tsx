@@ -14,16 +14,18 @@ export function ParameterTable({
   const [search, setSearch] = useState('');
   const rows = useMemo(() => {
     const groups = new Map<string, ObservedParameter[]>();
-    parameters.forEach((parameter) =>
-      groups.set(parameter.name, [...(groups.get(parameter.name) ?? []), parameter]),
-    );
+    for (const parameter of parameters) {
+      const matches = groups.get(parameter.name);
+      if (matches) matches.push(parameter);
+      else groups.set(parameter.name, [parameter]);
+    }
     return [...groups.entries()]
       .map(([name, matches]) => ({
         name,
         matches,
-        latest: [...matches].sort(
-          (a, b) => Date.parse(b.eventTimestamp) - Date.parse(a.eventTimestamp),
-        )[0],
+        latest: matches.reduce((latest, item) =>
+          item.eventTimestamp > latest.eventTimestamp ? item : latest,
+        ),
         unique: new Set(matches.map((item) => item.value)).size,
       }))
       .filter((row) =>

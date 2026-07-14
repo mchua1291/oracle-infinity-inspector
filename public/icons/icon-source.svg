@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Oracle Infinity Inspector">
+  <rect width="128" height="128" rx="24" fill="#312d2a" />
+  <path d="M24 64 C36 44 48 44 64 64 C80 84 92 84 104 64 C92 44 80 44 64 64 C48 84 36 84 24 64" fill="none" stroke="#ffffff" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" />
+  <rect x="0" y="0" width="128" height="10" rx="5" fill="#c74634" />
+</svg>

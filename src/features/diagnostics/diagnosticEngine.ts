@@ -7,6 +7,7 @@ import type {
 import { buildCommerceDiagnostics } from './commerceValidator';
 import { detectDuplicatePageViews } from './duplicateEventDetector';
 import { summarizeInfinityLibraries } from '../infinity/librarySummary';
+import { isCollectionObservation, isSupportObservation } from '../network/observationCollection';
 
 function warning(
   code: string,
@@ -96,14 +97,96 @@ function environmentWarnings(
   });
 }
 
+function normalized(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function expectedProfileWarnings(
+  session: DiagnosticSession,
+  profile?: ExpectedDomainProfile,
+): DiagnosticWarning[] {
+  if (!profile) return [];
+  const findings: DiagnosticWarning[] = [];
+  const observedAccounts = [
+    ...session.loaders.map((loader) => ({ id: loader.id, value: loader.config.accountGuid })),
+    ...session.networkObservations.map((event) => ({ id: event.id, value: event.accountGuid })),
+  ].filter((entry): entry is { id: string; value: string } => Boolean(entry.value));
+  const expectedAccounts = new Set(profile.accountGuids.map(normalized).filter(Boolean));
+  const unexpectedAccounts = observedAccounts.filter(
+    (entry) => expectedAccounts.size > 0 && !expectedAccounts.has(normalized(entry.value)),
+  );
+  if (unexpectedAccounts.length) {
+    findings.push(
+      warning(
+        'account-guid-profile-mismatch',
+        'high',
+        'Observed account GUID differs from expected profile',
+        `Expected ${profile.accountGuids.join(', ')}; observed ${[...new Set(unexpectedAccounts.map((entry) => entry.value))].join(', ')}.`,
+        'Confirm the domain profile and the account embedded in the loader and collection endpoint.',
+        unexpectedAccounts.map((entry) => entry.id),
+      ),
+    );
+  }
+
+  if (profile.tagId) {
+    const expectedTagId = normalized(profile.tagId);
+    const mismatches = session.loaders.filter(
+      (loader) => normalized(loader.config.tagId ?? '') !== expectedTagId,
+    );
+    if (mismatches.length)
+      findings.push(
+        warning(
+          'tag-id-profile-mismatch',
+          'high',
+          'Observed tag ID differs from expected profile',
+          `Expected ${profile.tagId}; observed ${[...new Set(mismatches.map((loader) => loader.config.tagId ?? 'missing'))].join(', ')}.`,
+          'Confirm that the intended CX Tag is deployed for this domain.',
+          mismatches.map((loader) => loader.id),
+        ),
+      );
+  }
+
+  if (profile.config) {
+    const expectedConfig = normalized(profile.config);
+    const mismatches = session.loaders.filter(
+      (loader) => normalized(loader.config.config ?? '') !== expectedConfig,
+    );
+    if (mismatches.length)
+      findings.push(
+        warning(
+          'config-profile-mismatch',
+          'high',
+          'Observed _ora.config differs from expected profile',
+          `Expected ${profile.config}; observed ${[...new Set(mismatches.map((loader) => loader.config.config ?? 'missing'))].join(', ')}.`,
+          'Confirm the intended Oracle Infinity environment configuration for this domain.',
+          mismatches.map((loader) => loader.id),
+        ),
+      );
+  }
+
+  if (profile.loadMode) {
+    for (const loader of session.loaders.filter((entry) => entry.loadMode !== profile.loadMode)) {
+      findings.push(
+        warning(
+          'load-mode-mismatch',
+          'medium',
+          'Sync/async inference differs from expected profile',
+          `Expected ${profile.loadMode}; observed inference is ${loader.loadMode}.`,
+          'Review the load-mode evidence. Inference is not a guaranteed execution trace.',
+          [loader.id],
+        ),
+      );
+    }
+  }
+  return findings;
+}
+
 export function buildDiagnostics(
   session: DiagnosticSession,
   expectedProfiles: ExpectedDomainProfile[] = [],
 ): DiagnosticWarning[] {
   const warnings: DiagnosticWarning[] = [];
-  const collection = session.networkObservations.filter(
-    (event) => event.eventKind !== 'loader' && event.eventKind !== 'library',
-  );
+  const collection = session.networkObservations.filter(isCollectionObservation);
   const loaderNetwork = session.networkObservations.filter((event) => event.eventKind === 'loader');
   const loaderEvidenceIds = [
     ...session.loaders.map((loader) => loader.id),
@@ -176,20 +259,17 @@ export function buildDiagnostics(
   }
   const expected = domainProfile(session, expectedProfiles);
   warnings.push(...environmentWarnings(session, expected));
-  if (expected?.loadMode) {
-    for (const loader of session.loaders.filter((entry) => entry.loadMode !== expected.loadMode)) {
-      warnings.push(
-        warning(
-          'load-mode-mismatch',
-          'medium',
-          'Sync/async inference differs from expected profile',
-          `Expected ${expected.loadMode}; observed inference is ${loader.loadMode}.`,
-          'Review the load-mode evidence. Inference is not a guaranteed execution trace.',
-          [loader.id],
-        ),
-      );
-    }
-  }
+  warnings.push(...expectedProfileWarnings(session, expected));
+  if (session.droppedObservationCount > 0)
+    warnings.push(
+      warning(
+        'session-observation-limit',
+        'info',
+        'Older observations were removed from this session',
+        `${session.droppedObservationCount} older network observations were removed to keep the inspector responsive.`,
+        'Start a new focused capture if the complete long-running session is required.',
+      ),
+    );
   for (const event of session.networkObservations) {
     if (event.eventKind === 'library' && event.statusCode >= 400) {
       warnings.push(
@@ -215,6 +295,31 @@ export function buildDiagnostics(
           [event.id],
         ),
       );
+    }
+    if (event.sourceType === 'dcapi-browser-visible' && event.requestMethod !== 'POST') {
+      warnings.push(
+        warning(
+          'unsupported-dcapi-method',
+          'medium',
+          'Unexpected DC API request method',
+          `${event.requestMethod} was observed for the documented DC API v3 collection endpoint.`,
+          'Confirm that the browser implementation sends the event payload with POST.',
+          [event.id],
+        ),
+      );
+    }
+    if (isSupportObservation(event) && event.statusCode >= 400) {
+      warnings.push(
+        warning(
+          'infinity-support-request-failed',
+          'medium',
+          'Infinity support request failed',
+          `${event.requestMethod} returned HTTP ${event.statusCode} for Infinity support or service traffic.`,
+          'Inspect the response and confirm whether the supporting Infinity capability is required.',
+          [event.id],
+        ),
+      );
+      continue;
     }
     if (event.statusCode >= 400) {
       warnings.push(
@@ -277,6 +382,28 @@ export function buildDiagnostics(
           [parameter.id],
         ),
       );
+    if (parameter.sensitivity === 'payment-card')
+      warnings.push(
+        warning(
+          'suspected-payment-card',
+          'high',
+          'Possible payment-card value collected',
+          `${parameter.name} contains a value that passes a payment-card checksum.`,
+          'Do not send payment-card data to analytics; remove it and follow the applicable incident process.',
+          [parameter.id],
+        ),
+      );
+    if (parameter.sensitivity === 'phone')
+      warnings.push(
+        warning(
+          'suspected-phone',
+          'medium',
+          'Possible raw phone number collected',
+          `${parameter.name} contains a phone-number-like value.`,
+          'Remove, transform, or explicitly approve the value according to the applicable privacy policy.',
+          [parameter.id],
+        ),
+      );
     if (parameter.classification === 'unknown' && !warnedUnknown.has(parameter.name)) {
       warnedUnknown.add(parameter.name);
       warnings.push(
@@ -323,9 +450,7 @@ export function buildDiagnostics(
 
 export function buildSummary(session: DiagnosticSession): DiagnosticSummary {
   const loaderNetwork = session.networkObservations.filter((event) => event.eventKind === 'loader');
-  const collection = session.networkObservations.filter(
-    (event) => event.eventKind !== 'loader' && event.eventKind !== 'library',
-  );
+  const collection = session.networkObservations.filter(isCollectionObservation);
   const libraries = summarizeInfinityLibraries(session.networkObservations);
   const tagStatus =
     session.loaders.length || loaderNetwork.length
@@ -343,6 +468,7 @@ export function buildSummary(session: DiagnosticSession): DiagnosticSummary {
     cxTagEventCount: collection.filter((event) => event.sourceType === 'cx-tag-network').length,
     dcApiEventCount: collection.filter((event) => event.sourceType === 'dcapi-browser-visible')
       .length,
+    supportTrafficCount: session.networkObservations.filter(isSupportObservation).length,
     standardParameterCount: session.parameters.filter((item) => item.classification === 'standard')
       .length,
     customParameterCount: session.parameters.filter((item) => item.classification === 'custom')

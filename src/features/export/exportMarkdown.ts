@@ -4,7 +4,13 @@ import { createExportReport } from './exportJson';
 function text(value: string | number | null | undefined): string {
   if (value === undefined || value === '') return 'Unavailable';
   if (value === null) return '**null**';
-  return String(value).replace(/\|/g, '\\|').replace(/\r?\n/g, '<br>');
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\\/g, '\\\\')
+    .replace(/([`*_[\]|])/g, '\\$1')
+    .replace(/\r?\n/g, '<br>');
 }
 
 function eventName(event: ExportedQaEvent): string {
@@ -43,12 +49,12 @@ function eventSection(event: ExportedQaEvent): string[] {
   return [
     `## Event ${event.sequence} — ${eventName(event)}`,
     '',
-    `- Timestamp: ${event.timestamp}`,
-    `- Source: ${event.sourceType}`,
-    `- Request: ${event.request.method} ${event.request.url}`,
-    `- Response: ${event.request.responseStatus}`,
-    `- Account GUID: ${event.request.accountGuid ?? 'Unavailable'}`,
-    `- wt.dl: ${event.wtDl ?? 'Unavailable'}`,
+    `- Timestamp: ${text(event.timestamp)}`,
+    `- Source: ${text(event.sourceType)}`,
+    `- Request: ${text(event.request.method)} ${text(event.request.url)}`,
+    `- Response: ${text(event.request.responseStatus)}`,
+    `- Account GUID: ${text(event.request.accountGuid)}`,
+    `- wt.dl: ${text(event.wtDl)}`,
     `- Payload parse: ${event.parseStatus}`,
     `- Parameters: ${event.payload.parameterCount}`,
     '',
@@ -62,20 +68,22 @@ function eventSection(event: ExportedQaEvent): string[] {
     ...(event.payload.emptyValues.length
       ? event.payload.emptyValues.map(
           (issue) =>
-            `- **Potential issue:** ${issue.name} was collected with ${issue.valueKind === 'null' ? 'a null value' : 'an empty string'}.`,
+            `- **Potential issue:** ${text(issue.name)} was collected with ${issue.valueKind === 'null' ? 'a null value' : 'an empty string'}.`,
         )
       : ['- No empty-string or null parameter values observed.']),
     '',
     '### Event warnings',
     '',
-    ...(event.warnings.length ? event.warnings.map((warning) => `- ${warning}`) : ['- None.']),
+    ...(event.warnings.length
+      ? event.warnings.map((warning) => `- ${text(warning)}`)
+      : ['- None.']),
     '',
     '### QA findings',
     '',
     ...(event.qaFindings.length
       ? event.qaFindings.map(
           (finding) =>
-            `- **${finding.severity.toUpperCase()} — ${finding.title}:** ${finding.message} Recommendation: ${finding.recommendation}${finding.sourceUrl ? ` ([Oracle guidance](${finding.sourceUrl}))` : ''}`,
+            `- **${finding.severity.toUpperCase()} — ${text(finding.title)}:** ${text(finding.message)} Recommendation: ${text(finding.recommendation)}${finding.sourceUrl ? ` ([Oracle guidance](${finding.sourceUrl}))` : ''}`,
         )
       : ['- None.']),
     '',
@@ -89,7 +97,7 @@ export function exportReportMarkdown(session: DiagnosticSession, version?: strin
     '# Oracle Infinity QA Report',
     '',
     `Generated: ${report.generatedAt}`,
-    `Page: ${report.page.url}`,
+    `Page: ${text(report.page.url)}`,
     `Capture started: ${report.page.captureStartedAt}`,
     `Extension: ${report.extensionVersion}`,
     `Catalog: ${report.catalogVersion}`,
@@ -103,6 +111,7 @@ export function exportReportMarkdown(session: DiagnosticSession, version?: strin
     `- Complete collection events documented: ${report.events.length}`,
     `- CX Tag events: ${summary.cxTagEventCount}`,
     `- Browser-visible DC API events: ${summary.dcApiEventCount}`,
+    `- Infinity support/service requests: ${summary.supportTrafficCount}`,
     `- Out-of-the-box/custom/needs-review parameter observations: ${summary.standardParameterCount}/${summary.customParameterCount}/${summary.unknownParameterCount}`,
     `- Diagnostic warnings: ${summary.warningCount}`,
     `- Capture may be incomplete: ${report.page.captureMayBeIncomplete ? 'yes' : 'no'}`,
@@ -114,7 +123,7 @@ export function exportReportMarkdown(session: DiagnosticSession, version?: strin
     ...(report.tagManagers.length
       ? report.tagManagers.map(
           (manager) =>
-            `- **${manager.label}**${manager.containerId ? ` — ${manager.containerId}` : ''}${manager.environment ? ` (${manager.environment})` : ''}: ${manager.evidence} Confidence: ${manager.confidence}.`,
+            `- **${text(manager.label)}**${manager.containerId ? ` — ${text(manager.containerId)}` : ''}${manager.environment ? ` (${text(manager.environment)})` : ''}: ${text(manager.evidence)} Confidence: ${text(manager.confidence)}.`,
         )
       : ['- No standard tag-manager snippet observed.']),
     '',
@@ -132,6 +141,19 @@ export function exportReportMarkdown(session: DiagnosticSession, version?: strin
           ),
         ]
       : ['- No Infinity static libraries observed.']),
+    '',
+    '### Infinity support and service traffic',
+    '',
+    ...(report.supportTraffic.length
+      ? [
+          '| Endpoint | Method | State | HTTP | Requests |',
+          '| --- | --- | --- | --- | ---: |',
+          ...report.supportTraffic.map(
+            (entry) =>
+              `| ${text(entry.url)} | ${text(entry.methods.join(', '))} | ${entry.state} | ${entry.statusCodes.join(', ') || 'Unavailable'} | ${entry.requestCount} |`,
+          ),
+        ]
+      : ['- No unverified Infinity support or service traffic observed.']),
     '',
     '## Event index',
     '',
@@ -152,12 +174,12 @@ export function exportReportMarkdown(session: DiagnosticSession, version?: strin
     ...(report.warnings.length
       ? report.warnings.map(
           (warning) =>
-            `- **${warning.severity.toUpperCase()} — ${warning.title}:** ${warning.message} Recommendation: ${warning.recommendation}${warning.sourceUrl ? ` ([Oracle guidance](${warning.sourceUrl}))` : ''}`,
+            `- **${warning.severity.toUpperCase()} — ${text(warning.title)}:** ${text(warning.message)} Recommendation: ${text(warning.recommendation)}${warning.sourceUrl ? ` ([Oracle guidance](${warning.sourceUrl}))` : ''}`,
         )
       : ['- No diagnostic warnings generated.']),
     '',
     '## Scope notes',
     '',
-    ...report.notes.map((note) => `- ${note}`),
+    ...report.notes.map((note) => `- ${text(note)}`),
   ].join('\n');
 }

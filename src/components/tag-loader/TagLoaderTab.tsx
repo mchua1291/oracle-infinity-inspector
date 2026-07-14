@@ -1,4 +1,6 @@
 import { summarizeInfinityLibraries } from '../../features/infinity/librarySummary';
+import { summarizeInfinitySupportTraffic } from '../../features/infinity/supportTrafficSummary';
+import { isCollectionObservation } from '../../features/network/observationCollection';
 import type { DiagnosticSession } from '../../features/models';
 import { Badge } from '../ui/Badge';
 import { Card } from '../ui/Card';
@@ -6,11 +8,10 @@ import { EmptyState } from '../ui/EmptyState';
 
 export function TagLoaderTab({ session }: { session: DiagnosticSession }) {
   const libraries = summarizeInfinityLibraries(session.networkObservations);
+  const supportTraffic = summarizeInfinitySupportTraffic(session.networkObservations);
   const tagManagers = session.tagManagers ?? [];
-  const collectionObserved = session.networkObservations.some(
-    (event) => event.eventKind !== 'loader' && event.eventKind !== 'library',
-  );
-  if (!session.loaders.length && !libraries.length && !tagManagers.length)
+  const collectionObserved = session.networkObservations.some(isCollectionObservation);
+  if (!session.loaders.length && !libraries.length && !tagManagers.length && !supportTraffic.length)
     return (
       <EmptyState
         title="No implementation evidence observed"
@@ -185,6 +186,48 @@ export function TagLoaderTab({ session }: { session: DiagnosticSession }) {
                     </td>
                     <td className="px-3 py-3">{library.statusCodes.join(', ') || 'Unavailable'}</td>
                     <td className="px-3 py-3">{library.requestCount}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
+        </section>
+      )}
+
+      {supportTraffic.length > 0 && (
+        <section>
+          <div className="mb-3">
+            <h2 className="text-sm font-semibold">Infinity support and service traffic</h2>
+            <p className="mt-1 text-xs text-stone-500">
+              Oracle Infinity-hosted requests that do not match a verified collection or static
+              library pattern. They are implementation evidence and are not counted as events.
+            </p>
+          </div>
+          <Card className="overflow-x-auto p-0">
+            <table className="min-w-full text-left text-xs">
+              <thead className="bg-stone-50 text-stone-500">
+                <tr>
+                  {['Endpoint', 'Method', 'State', 'HTTP', 'Requests'].map((label) => (
+                    <th key={label} className="px-3 py-2 font-semibold">
+                      {label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {supportTraffic.map((entry) => (
+                  <tr key={entry.url} className="border-t border-stone-100 align-top">
+                    <td className="max-w-md break-all px-3 py-3 font-mono text-[11px]">
+                      {entry.url}
+                    </td>
+                    <td className="px-3 py-3">{entry.methods.join(', ')}</td>
+                    <td className="px-3 py-3">
+                      <Badge tone={entry.state === 'failed' ? 'danger' : 'neutral'}>
+                        {entry.state}
+                      </Badge>
+                    </td>
+                    <td className="px-3 py-3">{entry.statusCodes.join(', ') || 'Unavailable'}</td>
+                    <td className="px-3 py-3">{entry.requestCount}</td>
                   </tr>
                 ))}
               </tbody>

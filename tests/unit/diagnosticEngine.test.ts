@@ -90,4 +90,62 @@ describe('diagnostic engine', () => {
       false,
     );
   });
+
+  it('validates account, tag ID, config, and load mode against the domain profile', () => {
+    const warnings = buildDiagnostics(
+      sessionFixture({ loaders: [loaderFixture()], captureMayBeIncomplete: false }),
+      [
+        {
+          domain: 'www.example.test',
+          environment: 'test',
+          accountGuids: ['different-account'],
+          tagId: 'different-tag',
+          config: 'analytics:production',
+          loadMode: 'asynchronous',
+        },
+      ],
+    );
+    expect(warnings.map((item) => item.code)).toEqual(
+      expect.arrayContaining([
+        'account-guid-profile-mismatch',
+        'tag-id-profile-mismatch',
+        'config-profile-mismatch',
+        'load-mode-mismatch',
+      ]),
+    );
+  });
+
+  it('does not count unverified Infinity service traffic as collection', () => {
+    const support = networkFixture({
+      sourceType: 'unknown-infinity-network',
+      eventKind: 'unknown',
+      requestUrl: 'https://dc.oracleinfinity.io/v4/account/example/client/id',
+    });
+    expect(buildSummary(sessionFixture({ networkObservations: [support] }))).toMatchObject({
+      collectionEventCount: 0,
+      supportTrafficCount: 1,
+    });
+  });
+
+  it.each([
+    ['payment-card', 'suspected-payment-card'],
+    ['phone', 'suspected-phone'],
+  ] as const)('turns %s sensitivity into a diagnostic', (sensitivity, code) => {
+    const parameter = {
+      id: sensitivity,
+      name: `site.${sensitivity}`,
+      value: 'synthetic',
+      sourceType: 'cx-tag-network' as const,
+      eventTimestamp: '2026-01-01T00:00:00.000Z',
+      eventId: 'event-1',
+      origin: 'query-string' as const,
+      classification: 'custom' as const,
+      sensitivity,
+    };
+    expect(
+      buildDiagnostics(sessionFixture({ parameters: [parameter] })).some(
+        (warning) => warning.code === code,
+      ),
+    ).toBe(true);
+  });
 });

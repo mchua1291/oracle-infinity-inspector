@@ -1,4 +1,5 @@
 import { createExportReport } from '../../src/features/export/exportJson';
+import { exportReportMarkdown } from '../../src/features/export/exportMarkdown';
 import { networkFixture, sessionFixture } from '../helpers';
 
 describe('QA report export', () => {
@@ -75,5 +76,43 @@ describe('QA report export', () => {
     expect(report.libraries).toEqual([
       expect.objectContaining({ name: 'ubi.js', state: 'cached', statusCodes: [304] }),
     ]);
+  });
+
+  it('summarizes unverified Infinity service traffic separately from events', () => {
+    const support = networkFixture({
+      sourceType: 'unknown-infinity-network',
+      eventKind: 'unknown',
+      requestUrl: 'https://dc.oracleinfinity.io/v4/account/example/client/id?token=raw',
+    });
+    const report = createExportReport(sessionFixture({ networkObservations: [support] }));
+    expect(report.events).toHaveLength(0);
+    expect(report.supportTraffic).toEqual([
+      expect.objectContaining({
+        url: 'https://dc.oracleinfinity.io/v4/account/example/client/id',
+        requestCount: 1,
+      }),
+    ]);
+  });
+
+  it('escapes captured Markdown and HTML control text', () => {
+    const value = 'line one\n![remote](https://example.test/image.png)<img src=x>';
+    const parameter = {
+      id: 'unsafe',
+      name: 'site.[unsafe]',
+      value,
+      sourceType: 'cx-tag-network' as const,
+      eventTimestamp: '2026-01-01T00:00:01.000Z',
+      eventId: 'event-1',
+      origin: 'query-string' as const,
+      classification: 'custom' as const,
+      sensitivity: 'none' as const,
+    };
+    const event = networkFixture({ parameters: [parameter], parameterCount: 1 });
+    const markdown = exportReportMarkdown(
+      sessionFixture({ networkObservations: [event], parameters: [parameter] }),
+    );
+    expect(markdown).not.toContain('![remote]');
+    expect(markdown).not.toContain('<img src=x>');
+    expect(markdown).toContain('&lt;img src=x&gt;');
   });
 });
