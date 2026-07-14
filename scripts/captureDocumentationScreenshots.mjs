@@ -270,7 +270,7 @@ try {
             reload() {},
           },
           network: {
-            getHAR: (callback) => callback({ log: { entries: [] } }),
+            getHAR: (callback) => callback({ entries: [] }),
             onRequestFinished: event,
             onNavigated: event,
           },

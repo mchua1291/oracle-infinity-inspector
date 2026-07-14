@@ -16,6 +16,10 @@ All notable changes to Oracle Infinity Inspector are documented here.
 - Client installation guidance now leads with the prebuilt release package while retaining source-build instructions for contributors.
 - Public documentation now includes a visual product tour and a sanitized demonstration workflow.
 
+### Fixed
+
+- Initial DevTools network capture now consumes Edge's HAR-log callback shape correctly and safely handles malformed responses.
+
 ## 0.3.0 - 2026-07-13
 
 ### Added

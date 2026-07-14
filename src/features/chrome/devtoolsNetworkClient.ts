@@ -33,9 +33,9 @@ export function startDevtoolsNetworkClient(
   chrome.devtools.network.onRequestFinished.addListener(finished);
   chrome.devtools.network.onNavigated.addListener(navigated);
   chrome.devtools.network.getHAR((har) => {
-    const observations = (har as unknown as { log: HarLog }).log.entries.flatMap((entry) =>
-      parseEntry(entry, importedCatalog),
-    );
+    const log = har as unknown as Partial<HarLog> | undefined;
+    const entries = Array.isArray(log?.entries) ? log.entries : [];
+    const observations = entries.flatMap((entry) => parseEntry(entry, importedCatalog));
     emitNew(observations);
   });
   return () => {
