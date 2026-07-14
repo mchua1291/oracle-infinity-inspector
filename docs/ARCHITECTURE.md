@@ -1,0 +1,53 @@
+# Architecture
+
+## Runtime surfaces
+
+Oracle Infinity Inspector is a Manifest V3 extension with five runtime boundaries:
+
+1. The DevTools bootstrap page creates the **Oracle Infinity** panel. Chrome exposes `chrome.devtools.*` only in this DevTools context.
+2. The React panel owns the active diagnostic session and subscribes to `chrome.devtools.network`. Existing HAR entries are read when the panel opens and new completed requests are parsed as they arrive.
+3. A passive, isolated-world content script scans only `<script>` elements and observes later DOM insertions. It sends loader metadata, not page content, to the extension.
+4. A small event-driven service worker coordinates the current tab, content script, popup, and panel. Its per-tab observation cache is in memory and can disappear when the worker is suspended.
+5. The toolbar popup displays a lightweight cached summary and explains that Chrome cannot reliably open a specific DevTools panel from a popup.
+
+## Redwood-inspired presentation
+
+The panel and popup use a locally implemented, Redwood-inspired token layer: Oracle JET's documented warm neutral ramp, simplified product header, restrained dividers and shadows, consistent status colors, and CSS-variable-based theming. The extension does not bundle Oracle JET or fetch Oracle fonts or styles at runtime; this keeps the MV3 package small, self-contained, and free of remote code.
+
+## Data flow
+
+```text
+Inspected DOM -> CX loader/tag-manager scanners -> service worker -> DevTools panel store
+Inspected network -> collection/library classifiers -> deterministic parsers -> panel store
+panel store -> classifier -> diagnostic engine -> tabs/export
+panel store -> service worker in-memory summary -> toolbar popup
+settings -> chrome.storage.local
+explicit export -> local Blob download or clipboard
+```
+
+No backend is used because all required evidence is already available locally in the inspected browser. Avoiding a backend also prevents diagnostic payloads, account identifiers, URLs, or parameter values from leaving the machine.
+
+## Parser and classifier layer
+
+The parser layer is independent from React and Chrome APIs:
+
+- URL pattern parsing recognizes only documented or explicitly scoped Oracle patterns.
+- Static Oracle-hosted JavaScript and related resources become library observations and are aggregated separately from collection events.
+- `dcs.gif` parsing preserves repeated and unknown query parameters.
+- DC API parsing validates JSON, requires a non-empty `events` array, accepts an optional `static` object, and reports partial results when invalid values can be safely omitted.
+- Each DC API event item becomes a logical network observation. Event values override static values on key collisions.
+- The parameter classifier uses a versioned static catalog generated from Oracle's Full Parameter Reference, curated official-document supplements (including commerce parameters), and optional locally imported entries. Documentation matches are out-of-the-box, conventional undocumented names are custom, and unmatched reserved namespaces remain needs-review.
+- The sensitive-value scanner detects email-, phone-, payment-card-, identifier-, and token-like values without transmitting them.
+- Documented or name-identified identifiers override only the generic token-shape heuristic; raw email, payment-card, and phone detection retain priority.
+
+## Diagnostic engine
+
+Diagnostics are recomputed from immutable session evidence. Rules cover absent or duplicate loaders, no collection after a loader, account/environment mismatches, late capture, malformed or failed requests, duplicate page-view heuristics, sensitive values, unknown parameters, high custom cardinality, and documented commerce event/payload consistency. Every result has severity, evidence identifiers, and a recommendation; documentation-backed commerce findings also carry their Oracle source URL.
+
+## Session and persistence
+
+Full request observations and bodies are not written to long-term storage. They live in the panel store and the service worker's in-memory per-tab cache until cleared, navigated away, or the extension context is suspended. Only user settings, expected profiles, and explicitly imported catalog entries use `chrome.storage.local`. Files are created only when the user initiates an export.
+
+## Build structure
+
+Vite builds three HTML entries and two fixed-name JavaScript entries. The fixed names match `public/manifest.json`; all other chunks are locally bundled with hashes. The extension content security policy permits only self-hosted scripts.

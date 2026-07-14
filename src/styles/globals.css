@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --redwood-neutral-0: #ffffff;
+  --redwood-neutral-10: #fbf9f8;
+  --redwood-neutral-20: #f5f4f2;
+  --redwood-neutral-30: #f1efed;
+  --redwood-neutral-40: #e4e1dd;
+  --redwood-neutral-100: #7b7570;
+  --redwood-neutral-140: #514c47;
+  --redwood-neutral-170: #312d2a;
+  --redwood-brand: #c74634;
+  font-family:
+    'Oracle Sans',
+    'Segoe UI',
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+  color: var(--redwood-neutral-170);
+  background: var(--redwood-neutral-20);
+  font-synthesis: none;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+::selection {
+  background: #f4d7d2;
+  color: var(--redwood-neutral-170);
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--redwood-brand);
+  outline-offset: 2px;
+}
+code {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: #bcb6b1;
+  border-radius: 999px;
+  border: 2px solid var(--redwood-neutral-20);
+}
+table thead {
+  letter-spacing: 0.01em;
+}

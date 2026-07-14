@@ -1,0 +1,14 @@
+{
+  "log": {
+    "entries": [
+      {
+        "startedDateTime": "2026-01-01T00:00:01.000Z",
+        "request": {
+          "method": "GET",
+          "url": "https://sample.dc.oracleinfinity.io/dcs.gif?wt.dl=0&wt.ti=Example%20Page&dcssip=example.test&dcsuri=%2Fhome"
+        },
+        "response": { "status": 200, "statusText": "OK" }
+      }
+    ]
+  }
+}

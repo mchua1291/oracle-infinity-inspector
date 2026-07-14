@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Oracle Infinity Inspector",
+  "version": "0.1.0",
+  "description": "Inspect browser-visible Oracle Infinity tags, collection calls, observed parameters, and implementation warnings.",
+  "devtools_page": "devtools.html",
+  "background": {
+    "service_worker": "assets/serviceWorker.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Oracle Infinity Inspector",
+    "default_popup": "popup.html"
+  },
+  "permissions": ["storage", "activeTab"],
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["assets/contentScript.js"],
+      "run_at": "document_start",
+      "all_frames": false
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "log": {
+    "entries": [
+      {
+        "startedDateTime": "2026-01-01T00:00:03.000Z",
+        "request": {
+          "method": "POST",
+          "url": "https://dc.oracleinfinity.io/v3/example-account-guid",
+          "postData": {
+            "mimeType": "application/json",
+            "text": "{\"static\":{\"dcssip\":\"example.test\",\"site.channel\":\"web\"},\"events\":[{\"wt.dl\":\"0\",\"wt.ets\":\"1767225601000\",\"dcsuri\":\"/home\"},{\"wt.dl\":\"1\",\"wt.ets\":\"1767225602000\",\"site.action\":\"open\"}]}"
+          }
+        },
+        "response": { "status": 202, "statusText": "Accepted" }
+      }
+    ]
+  }
+}
