@@ -1,4 +1,5 @@
 import { networkFixture } from '../helpers';
+import { createQaPlan, startQaPlanRun } from '../../src/features/qa/qaContracts';
 
 function fakeChrome(storageData: Record<string, unknown>) {
   let messageListener:
@@ -88,5 +89,33 @@ describe('service-worker session persistence', () => {
       pageUrl: 'https://www.example.test/page',
       scannedAt: '2026-07-13T22:00:00.000Z',
     });
+  });
+
+  it('persists an active QA run across capture resets and worker restarts', async () => {
+    const storageData: Record<string, unknown> = {};
+    const firstWorker = fakeChrome(storageData);
+    vi.stubGlobal('chrome', firstWorker.api);
+    vi.resetModules();
+    await import('../../src/background/serviceWorker');
+    const qaRun = startQaPlanRun(createQaPlan('Consent regression'));
+
+    await firstWorker.send({ type: 'SET_QA_RUN', tabId: 12, qaRun });
+    await firstWorker.send({
+      type: 'CLEAR_SESSION',
+      tabId: 12,
+      pageUrl: 'https://www.example.test/next',
+    });
+    await expect(firstWorker.send({ type: 'GET_TAB_SESSION', tabId: 12 })).resolves.toMatchObject({
+      pageUrl: 'https://www.example.test/next',
+      qaRun: { id: qaRun.id, planName: 'Consent regression' },
+    });
+
+    const restartedWorker = fakeChrome(storageData);
+    vi.stubGlobal('chrome', restartedWorker.api);
+    vi.resetModules();
+    await import('../../src/background/serviceWorker');
+    await expect(
+      restartedWorker.send({ type: 'GET_TAB_SESSION', tabId: 12 }),
+    ).resolves.toMatchObject({ qaRun: { id: qaRun.id } });
   });
 });

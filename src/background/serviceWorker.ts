@@ -1,5 +1,5 @@
 import type { BackgroundTabSession, ExtensionMessage } from '../features/chrome/chromeMessageTypes';
-import type { DiagnosticSession } from '../features/models';
+import { QaPlanRunSchema, type DiagnosticSession } from '../features/models';
 import { mergeObservations } from '../features/network/observationCollection';
 import {
   buildPlatformSummary,
@@ -41,7 +41,8 @@ function isStoredSession(value: unknown): value is BackgroundTabSession {
     Array.isArray(session.observations) &&
     Array.isArray(session.timeline) &&
     Number.isInteger(session.droppedObservationCount) &&
-    (session.droppedObservationCount ?? -1) >= 0
+    (session.droppedObservationCount ?? -1) >= 0 &&
+    (session.qaRun === undefined || QaPlanRunSchema.safeParse(session.qaRun).success)
   );
 }
 
@@ -196,6 +197,12 @@ async function handleMessage(
     notify(message.tabId);
     return { ok: true };
   }
+  if (message.type === 'SET_QA_RUN') {
+    const current = await getSession(message.tabId);
+    await saveSession(message.tabId, { ...current, qaRun: message.qaRun });
+    notify(message.tabId);
+    return { ok: true };
+  }
   if (message.type === 'GET_TAB_SESSION') return getSession(message.tabId);
   if (message.type === 'GET_TAB_SUMMARY') {
     const current = await getSession(message.tabId);
@@ -247,7 +254,8 @@ async function handleMessage(
       .catch(() => ({ ok: false }));
   }
   if (message.type === 'CLEAR_SESSION') {
-    const cleared = emptySession(message.pageUrl);
+    const current = await getSession(message.tabId, message.pageUrl);
+    const cleared = { ...emptySession(message.pageUrl), qaRun: current.qaRun };
     await saveSession(message.tabId, cleared);
     notify(message.tabId);
     return { ok: true };

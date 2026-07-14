@@ -2,6 +2,7 @@ export const tabs = [
   'Overview',
   'Implementation',
   'Network Events',
+  'QA Plan',
   'Event Timeline',
   'Warnings',
   'Export',

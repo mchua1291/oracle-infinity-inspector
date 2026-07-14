@@ -63,6 +63,22 @@ Each verified browser-visible collection event appears as an individual row. Sel
 
 Use the source, event-type, search, and warning filters to narrow a long session.
 
+### QA Plan
+
+QA Plan converts an approved manual test plan into an executable local contract:
+
+1. Select **New QA plan**, name the plan, and confirm the optional domain.
+2. Add scenario steps and, where relevant, consent checkpoints. Plans are saved locally and can be reused on later sessions.
+3. For each expected event, configure any known `wt.ev`, `wt.dl`, event kind, source, minimum/maximum count, and parameter rules. A parameter can be required, optional, or forbidden; non-empty values are required by default, and an optional regular expression can validate format.
+4. For a consent checkpoint, record the state being tested and whether collection calls, loader evidence, and identifier parameters must be blocked, are allowed, or are required. These expectations are client-configurable because consent implementations and approved requirements differ.
+5. Save the plan and start a new QA run.
+6. Select **Start capture** immediately before performing one approved interaction or consent action. Wait for traffic to settle, then select **Complete step**.
+7. Review the pass, warn, or fail result and its evidence. Use **Run again** to replace a step result after a controlled retest.
+
+Only one step captures at a time. Completed-step events remain attached to the current scorecard across navigation and session clears, so a multi-page flow can be exported as one report. Clearing the QA run removes that in-browser scorecard evidence but does not delete the saved plan.
+
+A consent checkpoint is an evidence comparison, not a legal conclusion. The inspector does not read a CMP's internal consent record, cookies, server-side activity, or vendor enforcement state.
+
 ### Event Timeline
 
 The timeline places loader, library, request, and diagnostic evidence in observation order. Use it to understand whether collection happened before or after key implementation evidence.
@@ -75,13 +91,13 @@ High-severity findings include malformed requests and raw sensitive values such 
 
 ### Export
 
-- **JSON** preserves structured event, payload, library, tag-manager, and diagnostic evidence for tooling or archival workflows.
-- **Markdown** creates a readable QA report suitable for issue descriptions or review notes.
+- **JSON** preserves structured event, payload, library, tag-manager, diagnostic, and QA scorecard evidence for tooling or archival workflows.
+- **Markdown** creates a readable QA report with the step-by-step pass/warn/fail scorecard.
 - **Copy readable QA report** places the Markdown version on the clipboard.
 
 Exports contain raw values, request URLs, and identifiers. Download and copy actions remain disabled until you acknowledge the raw client-data notice. Review the file before sharing it, use an approved storage location, and follow the client's retention requirements.
 
-JSON reports include a schema version and platform adapter identity. Integrations should check `schemaVersion`, `platform.id`, and `reportType` before interpreting platform-specific details.
+JSON reports use schema version 3 and include a platform adapter identity plus an optional `qaScorecard`. Integrations should check `schemaVersion`, `platform.id`, and `reportType` before interpreting platform-specific details.
 
 ### Settings
 
@@ -90,6 +106,7 @@ Settings are stored locally in extension storage.
 - Toggle DOM mutation monitoring, optional `window.ORA` detection, and reload recommendations.
 - Define the expected environment, account GUIDs, tag ID, `_ora.config`, and load mode for the current domain.
 - Import or export locally verified Oracle parameter catalog entries.
+- Saved QA plans are also retained in local extension storage and can be deleted from QA Plan.
 - Reset the current in-memory session without deleting saved settings.
 
 Imported catalog documentation links must point to trusted documentation. Do not import client payloads as catalog entries.
@@ -99,10 +116,11 @@ Imported catalog documentation links must point to trusted documentation. Do not
 1. Confirm the inspected URL and expected domain profile.
 2. Confirm loader account GUID, tag ID, configuration, and load mode.
 3. Confirm expected Infinity libraries loaded or were cache-validated without errors.
-4. Trigger a single approved interaction at a time.
+4. Start the corresponding QA Plan step, trigger one approved interaction, and complete the step after traffic settles.
 5. Match each interaction to its collection event and complete payload.
-6. Review required parameters, empty/null values, formats, and commerce correlations.
-7. Investigate raw sensitive values and unexpected custom or reserved parameters.
-8. Export the report, record the test conditions, and remove client evidence when retention expires.
+6. Run configured consent checkpoints at the exact before/after states defined by the client test plan.
+7. Review required parameters, empty/null values, formats, commerce correlations, and scorecard findings.
+8. Investigate raw sensitive values and unexpected custom or reserved parameters.
+9. Export the report, record the test conditions, and remove client evidence when retention expires.
 
 See [Known Limitations](LIMITATIONS.md) before reporting missing data and [QA Guide](QA_GUIDE.md) for sanitized fixture testing.

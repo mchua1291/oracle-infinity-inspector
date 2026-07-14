@@ -81,14 +81,26 @@ Never run this fixture with Oracle request blocking disabled.
 9. Review duplicate, full expected-profile, request failure, empty-value, raw-email, payment-card, phone, token, and catalog warnings. Long values in documented identifier fields should remain identifiers, but a raw email is still a high-severity finding regardless of field name.
 10. For commerce interactions, confirm the displayed reserved event name and transaction code, then review line-item alignment, subtotal math, and format findings. Low-severity companion/event-type findings are prompts for implementation-specific review where Oracle's examples are inconsistent.
 
+## QA contracts and consent checkpoints
+
+1. Translate the approved manual test plan into named **QA Plan** steps. Keep each step scoped to one interaction so unexpected or duplicate events remain attributable.
+2. Set minimum and maximum event counts. Add required, optional, or forbidden parameter rules and leave **Allow empty** disabled when an empty string or null is a defect.
+3. Use a value pattern only for a stable, agreed format. Invalid patterns fail the step rather than silently skipping validation.
+4. Save the plan, start a run, and select **Start capture** immediately before the interaction. Complete the step only after the relevant browser-visible traffic settles.
+5. For consent testing, create explicit checkpoints such as before choice, rejected, accepted, and withdrawn. Configure collection, loader, and identifier expectations from the client's approved requirements; do not assume one universal consent policy.
+6. Confirm a blocked expectation fails when evidence is present and a required expectation fails when evidence is absent. An allowed expectation is informational and does not require presence.
+7. Review all warn/fail findings before rerunning a step. A rerun replaces that step's previous captured evidence in the current scorecard.
+8. Remember that loader presence does not prove execution and that browser-visible absence does not prove server-side suppression. The scorecard documents observed evidence, not legal compliance.
+
 ## Export QA
 
 1. Open Export and confirm the collection-event, Infinity-library, parameter, empty/null, and diagnostic counts match the session.
 2. Acknowledge that the report contains raw client data, then export the complete JSON report and the readable Markdown report.
 3. Confirm every captured event contains request metadata, event-scoped QA findings, and all observed parameters grouped as out-of-the-box, custom, or needs review.
 4. Confirm raw values, request URLs, and account GUIDs are preserved. Confirm empty strings and nulls are explicitly identified as potential issues.
-5. Confirm JSON reports identify schema version 2 and the expected `platform.id`; adapter tests and fixtures must never contain real client traffic.
-6. Handle or delete exported client QA reports according to the approved retention process.
+5. When a QA run is present, confirm the scorecard includes the expected plan, step result counts, consent snapshots, expectation results, and findings. Confirm events captured on completed earlier steps remain in the report after navigation.
+6. Confirm JSON reports identify schema version 3 and the expected `platform.id`; adapter tests and fixtures must never contain real client traffic.
+7. Handle or delete exported client QA reports according to the approved retention process.
 
 ## Release checklist
 
@@ -98,5 +110,5 @@ Never run this fixture with Oracle request blocking disabled.
 - No remote script, telemetry, broad `host_permissions`, or request-blocking permission is present.
 - No real account GUID, customer data, email, token, or order data appears in source or fixtures.
 - Tests use only sanitized fixtures.
-- Manual synchronous, asynchronous, no-tag, blocked DC API, complete-payload export, and empty/null checks pass.
+- Manual synchronous, asynchronous, no-tag, blocked DC API, QA contract, consent checkpoint, scorecard export, complete-payload export, and empty/null checks pass.
 - Documentation verification date and catalog version are current.

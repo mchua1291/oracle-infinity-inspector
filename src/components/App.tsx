@@ -7,6 +7,7 @@ import { DevtoolsShell } from './layout/DevtoolsShell';
 import { TabNav, type TabName } from './layout/TabNav';
 import { NetworkEventsTab } from './network/NetworkEventsTab';
 import { OverviewTab } from './overview/OverviewTab';
+import { QaPlanTab } from './qa/QaPlanTab';
 import { SettingsTab } from './settings/SettingsTab';
 import { TagLoaderTab } from './tag-loader/TagLoaderTab';
 import { EventTimelineTab } from './timeline/EventTimelineTab';
@@ -14,7 +15,7 @@ import { EmptyState } from './ui/EmptyState';
 import { WarningsTab } from './warnings/WarningsTab';
 
 export function App() {
-  const { ready, session, settings, inspectedTabActive, error } = useDiagnosticsStore();
+  const { ready, session, settings, qaRun, inspectedTabActive, error } = useDiagnosticsStore();
   const [active, setActive] = useState<TabName>('Overview');
   const summary = buildPlatformSummary(session);
   const platform = platformAdapterForSession(session).identity;
@@ -37,12 +38,19 @@ export function App() {
       <TagLoaderTab session={session} />
     ) : active === 'Network Events' ? (
       <NetworkEventsTab session={session} />
+    ) : active === 'QA Plan' ? (
+      <QaPlanTab
+        settings={settings}
+        pageUrl={session.pageUrl}
+        platformId={platform.id}
+        qaRun={qaRun}
+      />
     ) : active === 'Event Timeline' ? (
       <EventTimelineTab session={session} />
     ) : active === 'Warnings' ? (
       <WarningsTab session={session} />
     ) : active === 'Export' ? (
-      <ExportTab session={session} />
+      <ExportTab session={session} qaRun={qaRun} />
     ) : (
       <SettingsTab settings={settings} pageUrl={session.pageUrl} platformId={platform.id} />
     );

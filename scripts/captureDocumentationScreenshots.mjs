@@ -168,6 +168,145 @@ const session = {
   droppedObservationCount: 0,
 };
 
+session.qaRun = {
+  id: 'qa-run-demo',
+  planId: 'qa-plan-demo',
+  planName: 'Product journey regression',
+  platformId: 'oracle-infinity',
+  startedAt: capturedAt,
+  completedAt: '2026-07-13T22:30:08.000Z',
+  status: 'fail',
+  steps: [
+    {
+      step: {
+        id: 'step-view',
+        name: 'View product detail',
+        kind: 'scenario',
+        instructions: 'Open the approved product detail page.',
+        expectedEvents: [
+          {
+            id: 'expected-view',
+            name: 'Product page view',
+            matcher: { eventKind: 'page-view', wtDl: '0' },
+            minCount: 1,
+            maxCount: 1,
+            parameters: [{ name: 'wt.ti', presence: 'required', allowEmpty: false }],
+          },
+        ],
+        unexpectedEventPolicy: 'warn',
+      },
+      status: 'pass',
+      startedAt: capturedAt,
+      completedAt: '2026-07-13T22:30:02.000Z',
+      startPageUrl: pageUrl,
+      baselineEventIds: [],
+      observedEvents: [session.observations[0]],
+      expectationResults: [
+        {
+          expectationId: 'expected-view',
+          expectationName: 'Product page view',
+          status: 'pass',
+          matchedEventIds: ['event-view'],
+          findings: [],
+        },
+      ],
+      findings: [],
+    },
+    {
+      step: {
+        id: 'step-cart',
+        name: 'Add product to cart',
+        kind: 'scenario',
+        instructions: 'Select Add to Cart once.',
+        expectedEvents: [
+          {
+            id: 'expected-cart',
+            name: 'Add-to-cart event',
+            matcher: { eventName: 'Add to Cart', wtDl: '25' },
+            minCount: 1,
+            maxCount: 1,
+            parameters: [{ name: 'product.quantity', presence: 'optional', allowEmpty: false }],
+          },
+        ],
+        unexpectedEventPolicy: 'warn',
+      },
+      status: 'warn',
+      startedAt: '2026-07-13T22:30:02.100Z',
+      completedAt: '2026-07-13T22:30:05.000Z',
+      startPageUrl: pageUrl,
+      baselineEventIds: ['event-view'],
+      observedEvents: [session.observations[1]],
+      expectationResults: [
+        {
+          expectationId: 'expected-cart',
+          expectationName: 'Add-to-cart event',
+          status: 'warn',
+          matchedEventIds: ['event-click'],
+          findings: [
+            {
+              code: 'optional-format-review',
+              outcome: 'warn',
+              message: 'Confirm the custom quantity format with the approved data contract.',
+              eventIds: ['event-click'],
+              parameterNames: ['product.quantity'],
+            },
+          ],
+        },
+      ],
+      findings: [
+        {
+          code: 'optional-format-review',
+          outcome: 'warn',
+          message: 'Confirm the custom quantity format with the approved data contract.',
+          eventIds: ['event-click'],
+          parameterNames: ['product.quantity'],
+        },
+      ],
+    },
+    {
+      step: {
+        id: 'step-rejected',
+        name: 'Consent rejected checkpoint',
+        kind: 'consent-checkpoint',
+        instructions: 'Reject analytics consent, then perform the approved page action.',
+        expectedEvents: [],
+        unexpectedEventPolicy: 'ignore',
+        consent: {
+          state: 'rejected',
+          collection: 'blocked',
+          loader: 'allowed',
+          identifiers: 'blocked',
+        },
+      },
+      status: 'fail',
+      startedAt: '2026-07-13T22:30:05.100Z',
+      completedAt: '2026-07-13T22:30:08.000Z',
+      startPageUrl: pageUrl,
+      baselineEventIds: ['event-view'],
+      observedEvents: [session.observations[1]],
+      expectationResults: [],
+      findings: [
+        {
+          code: 'consent-collection-blocked',
+          outcome: 'fail',
+          message:
+            'Collection was observed where the client QA contract expected it to be blocked.',
+          eventIds: ['event-click'],
+          parameterNames: [],
+        },
+      ],
+      consentSnapshot: {
+        state: 'rejected',
+        pageUrl,
+        observedAt: '2026-07-13T22:30:08.000Z',
+        collectionEventCount: 1,
+        loaderDetected: true,
+        identifierParameterNames: [],
+      },
+    },
+  ],
+};
+
 const popupSummary = {
   pageUrl,
   platformId: 'oracle-infinity',
@@ -299,8 +438,20 @@ try {
   await panel.setViewportSize({ width: 1600, height: 1000 });
   await panel.getByRole('heading', { name: 'Captured events' }).waitFor();
   await panel.screenshot({ path: join(output, 'network-event-details.png'), fullPage: true });
+  await panel.getByRole('button', { name: 'QA Plan' }).click();
+  await panel.getByText('Active scorecard').waitFor();
+  await panel.waitForTimeout(250);
+  await panel.screenshot({ path: join(output, 'qa-scorecard.png'), fullPage: true });
+  panel.once('dialog', (dialog) => dialog.accept());
+  await panel.getByRole('button', { name: 'Clear QA run' }).click();
+  await panel.getByText('Active scorecard').waitFor({ state: 'detached' });
+  await panel.getByRole('button', { name: 'New QA plan' }).click();
+  await panel.getByRole('heading', { name: 'Plan steps' }).waitFor();
+  await panel.screenshot({ path: join(output, 'qa-plan.png'), fullPage: true });
   await context.close();
-  console.log('Captured sanitized popup, overview, and network-event documentation screenshots.');
+  console.log(
+    'Captured sanitized popup, overview, network-event, QA-scorecard, and QA-plan documentation screenshots.',
+  );
 } finally {
   await browser.close();
   await new Promise((resolveClose) => server.close(resolveClose));

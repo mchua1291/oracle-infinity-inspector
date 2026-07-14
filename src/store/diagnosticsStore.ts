@@ -15,9 +15,17 @@ import {
   type DiagnosticSession,
   type ExtensionSettings,
   type PlatformNetworkObservation,
+  type QaPlan,
+  type QaPlanRun,
 } from '../features/models';
 import { loadSettings, saveSettings } from '../features/settings/settingsStore';
 import { mergeObservations } from '../features/network/observationCollection';
+import {
+  cancelQaStep as cancelQaStepRun,
+  completeQaStep as completeQaStepRun,
+  startQaPlanRun,
+  startQaStep as startQaStepRun,
+} from '../features/qa/qaContracts';
 
 const MAX_TIMELINE_ENTRIES = 1500;
 
@@ -25,6 +33,7 @@ interface DiagnosticsState {
   ready: boolean;
   session: DiagnosticSession;
   settings: ExtensionSettings;
+  qaRun?: QaPlanRun;
   inspectedTabActive?: boolean;
   error?: string;
 }
@@ -53,6 +62,8 @@ function blankSession(pageUrl = '', captureMayBeIncomplete = true): DiagnosticSe
 
 let state: DiagnosticsState = { ready: false, session: blankSession(), settings: DEFAULT_SETTINGS };
 let refreshSequence = 0;
+let qaRunWriteSequence = 0;
+let qaRunWritePending = false;
 const listeners = new Set<() => void>();
 function emit() {
   listeners.forEach((listener) => listener());
@@ -116,7 +127,28 @@ async function refreshFromBackground() {
     tabId,
   } satisfies ExtensionMessage)) as BackgroundTabSession;
   if (sequence !== refreshSequence) return;
-  setState({ ...state, session: hydrate(source, state.session) });
+  setState({
+    ...state,
+    session: hydrate(source, state.session),
+    qaRun: qaRunWritePending ? state.qaRun : source.qaRun,
+  });
+}
+
+function updateQaRun(qaRun?: QaPlanRun) {
+  const sequence = ++qaRunWriteSequence;
+  qaRunWritePending = true;
+  setState({ ...state, qaRun });
+  runExtensionOperation(async () => {
+    try {
+      await chrome.runtime.sendMessage({
+        type: 'SET_QA_RUN',
+        tabId,
+        qaRun,
+      } satisfies ExtensionMessage);
+    } finally {
+      if (sequence === qaRunWriteSequence) qaRunWritePending = false;
+    }
+  });
 }
 
 export const diagnosticsActions = {
@@ -255,6 +287,24 @@ export const diagnosticsActions = {
       session.pageContextDetected = await detectPageContext(session);
     else session.pageContextDetected = undefined;
     setState({ ...state, settings, session });
+  },
+  startQaPlan(plan: QaPlan) {
+    updateQaRun(startQaPlanRun(plan));
+  },
+  startQaStep(stepId: string) {
+    if (!state.qaRun) throw new Error('Start a QA plan before starting a step.');
+    updateQaRun(startQaStepRun(state.qaRun, stepId, state.session));
+  },
+  completeQaStep(stepId: string) {
+    if (!state.qaRun) throw new Error('Start a QA plan before completing a step.');
+    updateQaRun(completeQaStepRun(state.qaRun, stepId, state.session));
+  },
+  cancelQaStep(stepId: string) {
+    if (!state.qaRun) return;
+    updateQaRun(cancelQaStepRun(state.qaRun, stepId));
+  },
+  clearQaRun() {
+    updateQaRun(undefined);
   },
   refreshFromBackground,
 };

@@ -1,6 +1,12 @@
 import { createExportReport } from '../../src/features/export/exportJson';
 import { exportReportMarkdown } from '../../src/features/export/exportMarkdown';
 import { ExportedDiagnosticReportSchema } from '../../src/features/models';
+import {
+  completeQaStep,
+  createQaPlan,
+  startQaPlanRun,
+  startQaStep,
+} from '../../src/features/qa/qaContracts';
 import { networkFixture, sessionFixture } from '../helpers';
 
 describe('QA report export', () => {
@@ -50,7 +56,7 @@ describe('QA report export', () => {
       sessionFixture({ networkObservations: [event], parameters, warnings: [qaFinding] }),
     );
 
-    expect(report.schemaVersion).toBe(2);
+    expect(report.schemaVersion).toBe(3);
     expect(report.platform).toEqual({
       id: 'oracle-infinity',
       family: 'Oracle Digital Experience Analytics',
@@ -123,5 +129,32 @@ describe('QA report export', () => {
     expect(markdown).not.toContain('![remote]');
     expect(markdown).not.toContain('<img src=x>');
     expect(markdown).toContain('&lt;img src=x&gt;');
+  });
+
+  it('exports a pass/warn/fail scorecard and preserves completed-step evidence', () => {
+    const event = networkFixture({ id: 'completed-step-event' });
+    const plan = createQaPlan('Checkout QA');
+    const runStarted = startQaPlanRun(plan);
+    const stepStarted = startQaStep(runStarted, plan.steps[0].id, sessionFixture());
+    const runCompleted = completeQaStep(
+      stepStarted,
+      plan.steps[0].id,
+      sessionFixture({ networkObservations: [event] }),
+    );
+    const currentSession = sessionFixture({ networkObservations: [] });
+
+    const report = createExportReport(currentSession, '0.4.0', runCompleted);
+    const markdown = exportReportMarkdown(currentSession, '0.4.0', runCompleted);
+
+    expect(report.qaScorecard).toMatchObject({
+      planName: 'Checkout QA',
+      status: 'pass',
+      summary: { total: 1, passed: 1, warnings: 0, failed: 0, notRun: 0 },
+    });
+    expect(report.events.map((item) => item.id)).toEqual(['completed-step-event']);
+    expect(ExportedDiagnosticReportSchema.safeParse(report).success).toBe(true);
+    expect(markdown).toContain('## QA contract scorecard');
+    expect(markdown).toContain('Overall result: **PASS**');
+    expect(markdown).toContain('Checkout QA');
   });
 });

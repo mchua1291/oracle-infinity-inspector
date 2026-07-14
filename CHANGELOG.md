@@ -4,8 +4,16 @@ All notable changes to Oracle Infinity Inspector are documented here.
 
 ## Unreleased
 
+### Added
+
+- Reusable local QA plans with ordered scenario steps, explicit capture windows, event matchers, count limits, required/optional/forbidden parameter rules, non-empty validation, and optional value patterns.
+- Client-configurable consent checkpoints for before-choice, rejected, accepted, and withdrawn states, with blocked/allowed/required expectations for collection calls, loader evidence, and identifier parameters.
+- Per-tab pass/warn/fail scorecards that survive navigation and service-worker suspension, retain completed-step event evidence, and appear in JSON and Markdown exports.
+- Focused contract, consent, export, settings-migration, persistence, and QA-plan component coverage.
+
 ### Changed
 
+- JSON QA exports now use schema version 3 and can include a platform-neutral `qaScorecard`.
 - Browser documentation now distinguishes verified Microsoft Edge support, expected Google Chrome compatibility, best-effort support for other Chromium browsers, and unsupported Firefox/Safari architectures.
 - Removed obsolete standalone parameter-tab components and test-only compatibility exports superseded by the unified event-payload view and platform adapter runtime.
 - CI now rejects unreachable production source files and exported declarations with no production references; TypeScript also enforces unused local and parameter checks.

@@ -13,7 +13,9 @@ The extension is distributed as a ready-built GitHub release package and as sour
 - Classifies parameters using Oracle's documented parameter reference.
 - Highlights empty strings, explicit nulls, raw email addresses, and other QA concerns.
 - Validates documented Oracle commerce events and value formats.
-- Exports complete local QA reports as JSON or Markdown.
+- Runs reusable QA plans with named scenario captures, event counts, required/forbidden/non-empty parameter rules, and optional value patterns.
+- Records client-configurable consent checkpoints for collection, loader, and identifier expectations before choice, after rejection, after acceptance, or after withdrawal.
+- Exports complete local QA reports and pass/warn/fail contract scorecards as JSON or Markdown.
 - Routes product-specific detection, validation, terminology, and export metadata through a typed platform adapter designed for future Oracle analytics generations.
 - Provides a lightweight toolbar companion for page scans and payload-free status sharing.
 
@@ -28,6 +30,12 @@ The Overview combines implementation evidence, event counts, parameter classific
 Network Events keeps each complete event and its payload together, including out-of-the-box, custom, unknown, empty, and null values.
 
 ![Sanitized complete network event and payload details using synthetic example.test data](docs/images/network-event-details.png)
+
+QA Plan turns an approved test plan into explicit capture steps. Each completed scenario or consent checkpoint receives a pass, warn, or fail result and retains its supporting event evidence for export.
+
+![Sanitized pass, warn, and fail QA scorecard using synthetic example.test evidence](docs/images/qa-scorecard.png)
+
+![Sanitized QA plan editor with a synthetic example.test scenario](docs/images/qa-plan.png)
 
 The toolbar companion can scan the current page, show cached evidence, surface priority findings, and copy a summary that excludes payload values.
 
@@ -86,11 +94,12 @@ See [Installation](docs/INSTALLATION.md) for updating, removal, Chrome instructi
 1. Open DevTools on the target tab before reloading the page.
 2. Clear the inspector session and reload.
 3. Review **Overview** and **Implementation** for the loader, libraries, account configuration, load mode, and tag-manager clues.
-4. Trigger only the approved interactions in the test plan.
-5. Open **Network Events** and select each collection event to review its complete payload.
-6. Review empty/null values, custom parameters, and **Warnings**.
-7. Configure an expected domain profile in **Settings** when validating a known implementation.
-8. Export JSON for machine-readable evidence or Markdown for a readable QA report.
+4. In **QA Plan**, create or select a reusable plan with named scenario steps and any required consent checkpoints.
+5. Start one step immediately before its approved interaction, wait for collection traffic to settle, then complete the step.
+6. Review the step's pass/warn/fail result and supporting findings. Repeat for each step.
+7. Open **Network Events** to inspect each complete payload and review empty/null values, custom parameters, and **Warnings**.
+8. Configure an expected domain profile in **Settings** when validating a known implementation.
+9. Export JSON for machine-readable evidence or Markdown for a readable report with the contract scorecard.
 
 The toolbar popup is useful for a quick loader/status check, but complete network capture and reports require the DevTools panel.
 
@@ -107,6 +116,7 @@ See [Usage](docs/USAGE.md) for a detailed walkthrough and [QA Guide](docs/QA_GUI
 - DevTools is attached to one browser tab. Open DevTools separately on another tab.
 - Opening DevTools after page load can miss earlier requests. Clear and reload before drawing conclusions.
 - Loader and tag-manager detection is evidence-based and cannot always prove which rule, container, or consent decision produced a request.
+- Consent checkpoints evaluate only configured expectations against browser-visible collection events, loader evidence, and identifier parameters. They are not a consent-management platform or a legal-compliance determination.
 - Microsoft Edge 102+ is the verified target. Chrome 102+ is expected-compatible, while other Chromium browsers are unverified; Firefox and Safari are unsupported.
 
 Read [Known Limitations](docs/LIMITATIONS.md) before using absence of evidence as a QA conclusion.

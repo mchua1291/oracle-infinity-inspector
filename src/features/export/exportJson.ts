@@ -6,7 +6,9 @@ import type {
   ExportedDiagnosticReport,
   ExportedQaEvent,
   PlatformNetworkObservation,
+  QaPlanRun,
 } from '../models';
+import { buildQaScorecard } from '../qa/qaContracts';
 
 function findingsForEvent(
   event: PlatformNetworkObservation,
@@ -57,17 +59,32 @@ function createQaEvent(
 export function createExportReport(
   session: DiagnosticSession,
   extensionVersion = '0.4.0',
+  qaRun?: QaPlanRun,
 ): ExportedDiagnosticReport {
   const adapter = platformAdapterForSession(session);
   const { identity } = adapter;
-  const events = session.networkObservations
-    .filter(adapter.isCollectionObservation)
-    .map((event, index) =>
-      createQaEvent(event, index + 1, findingsForEvent(event, session.warnings)),
-    );
+  const collectionEvents = [
+    ...new Map(
+      [
+        ...(qaRun?.steps.flatMap((step) => step.observedEvents) ?? []),
+        ...session.networkObservations.filter(adapter.isCollectionObservation),
+      ].map((event) => [event.id, event]),
+    ).values(),
+  ].sort((left, right) => left.timestamp.localeCompare(right.timestamp));
+  const events = collectionEvents.map((event, index) =>
+    createQaEvent(event, index + 1, findingsForEvent(event, session.warnings)),
+  );
+  const reportSession = {
+    ...session,
+    networkObservations: [
+      ...session.networkObservations.filter((event) => !adapter.isCollectionObservation(event)),
+      ...collectionEvents,
+    ],
+    parameters: collectionEvents.flatMap((event) => event.parameters),
+  };
 
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     reportType: identity.reportType,
     platform: {
       id: identity.id,
@@ -84,17 +101,22 @@ export function createExportReport(
       lastScanAt: session.scanTimestamp,
       captureMayBeIncomplete: session.captureMayBeIncomplete,
     },
-    summary: buildPlatformSummary(session),
+    summary: buildPlatformSummary(reportSession),
     loaders: session.loaders,
     tagManagers: session.tagManagers ?? [],
     libraries: adapter.summarizeLibraries(session.networkObservations),
     supportTraffic: adapter.summarizeSupportTraffic(session.networkObservations),
     events,
     warnings: session.warnings,
+    qaScorecard: buildQaScorecard(qaRun),
     notes: adapter.exportNotes(session),
   };
 }
 
-export function exportReportJson(session: DiagnosticSession, version?: string): string {
-  return JSON.stringify(createExportReport(session, version), null, 2);
+export function exportReportJson(
+  session: DiagnosticSession,
+  version?: string,
+  qaRun?: QaPlanRun,
+): string {
+  return JSON.stringify(createExportReport(session, version, qaRun), null, 2);
 }
