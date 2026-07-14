@@ -6,6 +6,8 @@ The extension has no backend, analytics, telemetry, user account, or remote runt
 
 `chrome.storage.local` stores only user settings, expected domain profiles, and explicitly imported catalog entries. An expected account GUID is saved only when the user enters and saves it. Diagnostic files are written only through an explicit local export.
 
+The toolbar companion can copy a deliberately limited status summary containing the current page URL, detection state, and aggregate counts. It does not include captured parameter names or values. Its **Scan current page** action explicitly requests a one-time read-only DOM scan; it does not start network interception or continuous monitoring.
+
 ## Raw QA evidence
 
 The inspector displays browser-visible request URLs, account GUIDs, and parameter values exactly as observed. Empty strings and explicit nulls are retained and highlighted. The sensitivity scanner still flags email-, phone-, payment-card-, identifier-, and token-like values as diagnostic findings, but it does not alter or obscure the evidence.
@@ -15,7 +17,7 @@ JSON and Markdown QA reports include complete captured event payloads and reques
 ## Permissions
 
 - `storage` is used for settings and imported catalog entries.
-- The static content script matches HTTP and HTTPS pages because the product must inspect arbitrary developer-selected pages. It remains dormant until an Oracle Infinity DevTools panel activates its tab. Once active, it scans script elements and supported tag-manager iframe sources, is read-only, and sends only Oracle/tag-manager implementation evidence and inferred route changes.
+- The static content script matches HTTP and HTTPS pages because the product must inspect arbitrary developer-selected pages. It remains dormant until an Oracle Infinity DevTools panel activates its tab or the user explicitly selects **Scan current page** in the popup. It scans script elements and supported tag-manager iframe sources, is read-only, and sends only Oracle/tag-manager implementation evidence and inferred route changes.
 - No `host_permissions`, `webRequest`, `webRequestBlocking`, `history`, or `tabs` permission is requested.
 
 The broad HTTP(S) content-script match is the principal permission tradeoff. It allows activation on arbitrary developer-selected pages, while the dormant-by-default implementation avoids page scanning or URL publication when the inspector is not active. No `activeTab`, `tabs`, or broad `host_permissions` permission is requested.

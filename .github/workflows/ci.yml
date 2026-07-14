@@ -26,6 +26,8 @@ jobs:
       - run: npm run lint
       - run: npm run build
       - run: npm run verify:dist
+      - run: node scripts/packageExtension.mjs
+      - run: unzip -t release/*.zip
       - uses: actions/upload-artifact@v7
         with:
           name: oracle-infinity-inspector-dist

@@ -2,7 +2,7 @@
 
 Oracle Infinity Inspector is a local-first Microsoft Edge and Chromium DevTools extension for inspecting and documenting Oracle Infinity implementations. It reports CX Tag loader evidence, browser-visible collection events, complete observed payloads, implementation warnings, and QA-ready reports.
 
-The extension is distributed as source code and loaded as an unpacked extension. It is not published in the Microsoft Edge Add-ons or Chrome Web Store.
+The extension is distributed as a ready-built GitHub release package and as source code. It is loaded as an unpacked extension and is not published in the Microsoft Edge Add-ons or Chrome Web Store.
 
 ## What it does
 
@@ -15,12 +15,41 @@ The extension is distributed as source code and loaded as an unpacked extension.
 - Validates documented Oracle commerce events and value formats.
 - Exports complete local QA reports as JSON or Markdown.
 - Routes product-specific detection, validation, terminology, and export metadata through a typed platform adapter designed for future Oracle analytics generations.
+- Provides a lightweight toolbar companion for page scans and payload-free status sharing.
 
 The extension never calls Oracle tracking functions, changes page requests, uploads captured data, or sends telemetry.
 
+## Product tour
+
+The Overview combines implementation evidence, event counts, parameter classifications, and QA findings in one DevTools workspace.
+
+![Sanitized Oracle Infinity Inspector overview using synthetic example.test data](docs/images/overview.png)
+
+Network Events keeps each complete event and its payload together, including out-of-the-box, custom, unknown, empty, and null values.
+
+![Sanitized complete network event and payload details using synthetic example.test data](docs/images/network-event-details.png)
+
+The toolbar companion can scan the current page, show cached evidence, surface priority findings, and copy a summary that excludes payload values.
+
+<img src="docs/images/popup-companion.png" alt="Sanitized Oracle Infinity Inspector toolbar companion using synthetic example.test data" width="384">
+
+All public screenshots are generated from synthetic `example.test` evidence. They contain no client URLs, identifiers, or payloads.
+
 ## Install in Microsoft Edge
 
-Requirements: [Node.js 20 or newer](https://nodejs.org/) and Microsoft Edge.
+### Recommended: ready-built release package
+
+1. Open the [latest GitHub release](https://github.com/mchua1291/oracle-infinity-inspector/releases/latest).
+2. Download the `oracle-infinity-inspector-vX.Y.Z-edge.zip` asset and extract it to a permanent folder.
+3. Open `edge://extensions` in Edge.
+4. Enable **Developer mode** and select **Load unpacked**.
+5. Select the extracted folder containing `manifest.json`.
+
+The accompanying `.sha256` file can be used to verify the downloaded ZIP. Unpacked extensions do not update automatically; replace the extracted files and reload the extension when a new version is published.
+
+### Build from source
+
+Requirements: [Node.js 20 or newer](https://nodejs.org/), Git, and Microsoft Edge.
 
 ```powershell
 git clone https://github.com/mchua1291/oracle-infinity-inspector.git
@@ -29,15 +58,13 @@ npm install
 npm run build
 ```
 
-Then:
+After building:
 
-1. Open `edge://extensions` in Edge.
-2. Enable **Developer mode**.
-3. Select **Load unpacked**.
-4. Select the repository's generated `dist` folder.
-5. Open a site you are authorized to test.
-6. Open DevTools, then select the **Oracle Infinity** panel. Use the DevTools `»` overflow menu if the panel is hidden.
-7. In the panel, select **Clear session and reload inspected page** before evaluating the implementation.
+1. Open `edge://extensions`, enable **Developer mode**, and select **Load unpacked**.
+2. Select the repository's generated `dist` folder.
+3. Open a site you are authorized to test.
+4. Open DevTools, then select the **Oracle Infinity** panel. Use the DevTools `»` overflow menu if the panel is hidden.
+5. In the panel, select **Clear session and reload inspected page** before evaluating the implementation.
 
 See [Installation](docs/INSTALLATION.md) for updating, removal, Chrome instructions, and common setup problems.
 
@@ -51,6 +78,8 @@ See [Installation](docs/INSTALLATION.md) for updating, removal, Chrome instructi
 6. Review empty/null values, custom parameters, and **Warnings**.
 7. Configure an expected domain profile in **Settings** when validating a known implementation.
 8. Export JSON for machine-readable evidence or Markdown for a readable QA report.
+
+The toolbar popup is useful for a quick loader/status check, but complete network capture and reports require the DevTools panel.
 
 The Export tab requires a local acknowledgement that the report contains raw client data before
 download or clipboard actions are enabled.
@@ -90,6 +119,7 @@ Generated output is written to `dist` and is intentionally not committed. After 
 
 - [Installation and updates](docs/INSTALLATION.md)
 - [Using the inspector](docs/USAGE.md)
+- [Client and product demonstration guide](docs/DEMO_GUIDE.md)
 - [Troubleshooting](docs/TROUBLESHOOTING.md)
 - [QA and fixture guide](docs/QA_GUIDE.md)
 - [Oracle Infinity detection rules](docs/ORACLE_INFINITY_DETECTION.md)

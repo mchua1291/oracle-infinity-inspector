@@ -2,6 +2,20 @@
 
 All notable changes to Oracle Infinity Inspector are documented here.
 
+## 0.4.0 - Unreleased
+
+### Added
+
+- An actionable toolbar companion that can scan the current page, update automatically, surface priority findings, and copy a payload-free status summary.
+- Sanitized documentation screenshots generated from synthetic `example.test` evidence.
+- A dependency-free release packager that creates a ready-to-load Edge ZIP and SHA-256 checksum.
+- Automatic attachment of the unpacked Edge package to published GitHub releases.
+
+### Changed
+
+- Client installation guidance now leads with the prebuilt release package while retaining source-build instructions for contributors.
+- Public documentation now includes a visual product tour and a sanitized demonstration workflow.
+
 ## 0.3.0 - 2026-07-13
 
 ### Added

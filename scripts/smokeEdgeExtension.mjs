@@ -90,7 +90,7 @@ try {
   await page.waitForTimeout(250);
   const popup = await context.newPage();
   await popup.goto(`chrome-extension://${extensionId}/popup.html`);
-  await popup.getByRole('heading', { name: 'Inspector quick status' }).waitFor();
+  await popup.getByRole('heading', { name: 'Page QA companion' }).waitFor();
   const session = await popup.evaluate(
     async (id) => chrome.runtime.sendMessage({ type: 'GET_TAB_SESSION', tabId: id }),
     tabId,

@@ -1,6 +1,6 @@
 {
   "name": "oracle-infinity-inspector",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "description": "Local Oracle Infinity event inspection and QA reporting for Chromium DevTools.",
@@ -14,6 +14,8 @@
     "icons:render": "node scripts/renderExtensionIcons.mjs",
     "verify:dist": "node scripts/verifyBuild.mjs",
     "smoke:edge": "npm run build && node scripts/smokeEdgeExtension.mjs",
+    "package:extension": "npm run build && node scripts/packageExtension.mjs",
+    "screenshots": "npm run build && node scripts/captureDocumentationScreenshots.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },

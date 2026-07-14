@@ -108,6 +108,34 @@ async function activateDomInspection(tabId: number, monitorMutations: boolean): 
   return undefined;
 }
 
+async function scanTabDomOnce(tabId: number): Promise<{ ok: boolean }> {
+  try {
+    const result = (await chrome.tabs.sendMessage(tabId, {
+      type: 'GET_DOM_SCAN',
+    } satisfies ExtensionMessage)) as
+      | {
+          pageUrl: string;
+          loaders: BackgroundTabSession['loaders'];
+          tagManagers: BackgroundTabSession['tagManagers'];
+          scannedAt: string;
+        }
+      | undefined;
+    if (!result) return { ok: false };
+    const current = await getSession(tabId, result.pageUrl);
+    await saveSession(tabId, {
+      ...current,
+      pageUrl: result.pageUrl,
+      loaders: result.loaders,
+      tagManagers: result.tagManagers,
+      scannedAt: result.scannedAt,
+    });
+    notify(tabId);
+    return { ok: true };
+  } catch {
+    return { ok: false };
+  }
+}
+
 function diagnosticSession(tabId: number, source: BackgroundTabSession): DiagnosticSession {
   const now = new Date().toISOString();
   const session: DiagnosticSession = {
@@ -178,6 +206,15 @@ async function handleMessage(
       pageUrl: current.pageUrl,
       platformId: getPlatformIdentity(session.platformId).id,
       summary: buildPlatformSummary(session),
+      scannedAt: current.scannedAt,
+      warnings: [...session.warnings]
+        .sort(
+          (left, right) =>
+            ['info', 'low', 'medium', 'high'].indexOf(right.severity) -
+            ['info', 'low', 'medium', 'high'].indexOf(left.severity),
+        )
+        .slice(0, 3)
+        .map(({ severity, title }) => ({ severity, title })),
     };
   }
   if (message.type === 'GET_ACTIVE_TAB_ID') {
@@ -200,6 +237,7 @@ async function handleMessage(
   if (message.type === 'REQUEST_DOM_SCAN') {
     return activateDomInspection(message.tabId, message.monitorMutations);
   }
+  if (message.type === 'SCAN_TAB_DOM_ONCE') return scanTabDomOnce(message.tabId);
   if (message.type === 'SET_TAB_MUTATION_MONITORING') {
     return chrome.tabs
       .sendMessage(message.tabId, {

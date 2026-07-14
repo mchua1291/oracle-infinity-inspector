@@ -6,9 +6,9 @@ Oracle Infinity Inspector is a Manifest V3 extension with five runtime boundarie
 
 1. The DevTools bootstrap page creates the **Oracle Infinity** panel. Chrome exposes `chrome.devtools.*` only in this DevTools context.
 2. The React panel owns the active diagnostic session and subscribes to `chrome.devtools.network`. Existing HAR entries are read when the panel opens and new completed requests are parsed as they arrive.
-3. A passive, isolated-world content script is present on HTTP(S) pages but remains dormant until the DevTools panel activates inspection for its tab. Once active, it scans `<script>` and supported tag-manager `<iframe>` elements and can observe later DOM insertions. It sends implementation evidence, not general page content, to the extension.
+3. A passive, isolated-world content script is present on HTTP(S) pages but remains dormant until the DevTools panel activates inspection or the user requests a one-time popup scan. Active panel inspection can observe later DOM insertions; a popup scan reads only the current DOM snapshot. Both paths send implementation evidence, not general page content, to the extension.
 4. A small event-driven service worker coordinates the current tab, content script, popup, and panel. It mirrors bounded per-tab observations into `chrome.storage.session`, allowing the cache to survive service-worker suspension while still clearing when the browser extension session ends.
-5. The toolbar popup displays a lightweight cached summary and explains that Chrome cannot reliably open a specific DevTools panel from a popup.
+5. The toolbar popup displays a lightweight cached summary, can request an explicit one-time DOM scan, surfaces bounded priority finding titles, and explains that Chrome cannot reliably open a specific DevTools panel from a popup.
 
 ## Redwood-inspired presentation
 
@@ -21,7 +21,7 @@ active DevTools panel -> activate dormant content scanner
 Inspected DOM -> platform adapter loader scanners + tag-manager scanners -> service worker session cache -> DevTools panel store
 Inspected network -> adapter registry -> product parser/classifiers -> panel store
 panel store -> active platform adapter -> diagnostics/summaries -> tabs/export
-panel store -> service worker in-memory summary -> toolbar popup
+panel store -> service worker in-memory summary -> actionable toolbar companion
 settings -> chrome.storage.local
 explicit export -> local Blob download or clipboard
 ```
@@ -46,7 +46,7 @@ The parser layer is independent from React and Chrome APIs:
 - Each DC API event item becomes a logical network observation. Event values override static values on key collisions.
 - The parameter classifier uses a versioned static catalog generated from Oracle's Full Parameter Reference, curated official-document supplements (including commerce parameters), and optional locally imported entries. Documentation matches are out-of-the-box, conventional undocumented names are custom, and unmatched reserved namespaces remain needs-review.
 - The sensitive-value scanner detects email-, phone-, payment-card-, identifier-, and token-like values without transmitting them.
-- Documented or name-identified identifiers override only the generic token-shape heuristic; raw email, payment-card, and phone detection retain priority.
+- Documented or name-identified identifiers override only the generic token-shape heuristic. Raw email, payment-card, and phone detection retain priority except for validated system-generated formats such as `dcsdat` timestamps.
 - Adapter-specific observations are normalized into extensible platform-neutral loader, network, parameter, and session models before reaching the UI.
 
 ## Diagnostic engine
