@@ -7,6 +7,7 @@
   "scripts": {
     "build": "vite build --configLoader runner && vite build --config vite.content.config.ts --configLoader runner && node scripts/verifyBuild.mjs",
     "typecheck": "tsc --noEmit",
+    "audit:dead-code": "node scripts/checkDeadCode.mjs",
     "test": "vitest run --configLoader runner",
     "test:watch": "vitest --configLoader runner",
     "lint": "eslint . --max-warnings=0",

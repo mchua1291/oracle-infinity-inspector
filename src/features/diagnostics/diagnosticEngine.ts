@@ -506,23 +506,3 @@ export function buildSummary(session: DiagnosticSession): DiagnosticSummary {
     reloadRecommended: session.captureMayBeIncomplete,
   };
 }
-
-export function withDiagnostics(
-  session: DiagnosticSession,
-  profiles: ExpectedDomainProfile[] = [],
-): DiagnosticSession {
-  const warnings = buildDiagnostics(session, profiles);
-  const warningTimeline = warnings.map((item) => ({
-    id: `timeline:${item.id}`,
-    timestamp: session.scanTimestamp,
-    type: 'warning' as const,
-    title: item.title,
-    detail: item.message,
-    severity: item.severity,
-  }));
-  return {
-    ...session,
-    warnings,
-    timeline: [...session.timeline.filter((entry) => entry.type !== 'warning'), ...warningTimeline],
-  };
-}

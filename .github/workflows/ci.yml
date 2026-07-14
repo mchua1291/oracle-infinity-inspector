@@ -22,6 +22,7 @@ jobs:
       - run: npm audit --omit=dev
       - run: npm run format:check
       - run: npm run typecheck
+      - run: npm run audit:dead-code
       - run: npm test
       - run: npm run lint
       - run: npm run build

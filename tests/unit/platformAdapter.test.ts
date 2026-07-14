@@ -3,7 +3,6 @@ import type { HarEntry } from '../../src/features/network/harTypes';
 import { oracleInfinityPlatformAdapter } from '../../src/features/infinity/infinityPlatformAdapter';
 import {
   createPlatformRegistry,
-  getDefaultPlatformAdapter,
   getPlatformAdapter,
   platformAdapterForSession,
 } from '../../src/features/platform/platformRegistry';
@@ -13,7 +12,7 @@ import { networkFixture, sessionFixture } from '../helpers';
 
 describe('platform adapter architecture', () => {
   it('registers Infinity as the default adapter with stable product metadata', () => {
-    expect(getDefaultPlatformAdapter().identity).toMatchObject({
+    expect(getPlatformAdapter().identity).toMatchObject({
       id: 'oracle-infinity',
       productName: 'Oracle Infinity',
       reportType: 'oracle-infinity-qa-report',

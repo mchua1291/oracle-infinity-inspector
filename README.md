@@ -116,6 +116,7 @@ Read [Known Limitations](docs/LIMITATIONS.md) before using absence of evidence a
 ```powershell
 npm install
 npm run typecheck
+npm run audit:dead-code
 npm test
 npm run lint
 npm run build

@@ -3,7 +3,6 @@ import type { DiagnosticSession, PlatformId } from '../models';
 import type { PlatformAdapter } from './platformAdapter';
 
 export interface PlatformRegistry {
-  all(): readonly PlatformAdapter[];
   get(platformId?: PlatformId): PlatformAdapter;
   matchingRequest(url: string): readonly PlatformAdapter[];
 }
@@ -20,7 +19,6 @@ export function createPlatformRegistry(
   }
   const registered = [...initialAdapters];
   return {
-    all: () => registered,
     get(platformId) {
       if (!platformId) return registered[0];
       const adapter = byId.get(platformId);
@@ -32,14 +30,6 @@ export function createPlatformRegistry(
 }
 
 const registry = createPlatformRegistry([oracleInfinityPlatformAdapter]);
-
-export function getPlatformAdapters(): readonly PlatformAdapter[] {
-  return registry.all();
-}
-
-export function getDefaultPlatformAdapter(): PlatformAdapter {
-  return registry.get();
-}
 
 export function getPlatformAdapter(platformId?: PlatformId): PlatformAdapter {
   return registry.get(platformId);

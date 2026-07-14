@@ -7,6 +7,7 @@ Requirements: Node.js 20 or newer and Microsoft Edge 102+ for verified browser t
 ```powershell
 npm.cmd install
 npm.cmd run typecheck
+npm.cmd run audit:dead-code
 npm.cmd test
 npm.cmd run lint
 npm.cmd run build

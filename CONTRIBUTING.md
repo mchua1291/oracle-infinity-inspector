@@ -11,6 +11,7 @@ git clone https://github.com/mchua1291/oracle-infinity-inspector.git
 cd oracle-infinity-inspector
 npm ci
 npm run typecheck
+npm run audit:dead-code
 npm test
 npm run lint
 npm run build
@@ -31,7 +32,7 @@ Run `npm run screenshots` after intentional user-interface changes. Documentatio
 - Preserve raw empty-string and explicit-null observations.
 - Use official Oracle documentation for bundled parameter or commerce rules and include the source URL.
 - Do not introduce remote executable code, telemetry, request mutation, or a backend data path.
-- Run type checking, tests, lint, formatting checks, and a production build before opening a pull request.
+- Run type checking, the dead-code audit, tests, lint, formatting checks, and a production build before opening a pull request.
 - Explain user-visible changes and any privacy or permission impact.
 - Keep shared browser, storage, UI, and export code platform-neutral. New product-specific endpoints, schemas, terminology, profile fields, and diagnostics belong behind a `PlatformAdapter`.
 - Add an adapter registration test and synthetic request/DOM fixtures for each supported platform generation.
