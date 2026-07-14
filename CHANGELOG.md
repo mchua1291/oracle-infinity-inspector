@@ -4,6 +4,12 @@ All notable changes to Oracle Infinity Inspector are documented here.
 
 ## Unreleased
 
+## 0.5.1 - 2026-07-14
+
+### Fixed
+
+- Restored consistent vertical spacing above the active QA scorecard guidance notice and refreshed its documentation screenshot.
+
 ## 0.5.0 - 2026-07-14
 
 ### Added

@@ -1,6 +1,6 @@
 {
   "name": "oracle-infinity-inspector",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "private": true,
   "type": "module",
   "description": "Local Oracle Infinity implementation inspection, scenario validation, and QA reporting for Chromium DevTools.",

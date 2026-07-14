@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Oracle Infinity Inspector",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "minimum_chrome_version": "102",
   "description": "Inspect Oracle Infinity implementation evidence, events, payloads, QA scenarios, and scorecards.",
   "icons": {

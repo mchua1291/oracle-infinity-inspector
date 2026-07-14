@@ -12,7 +12,7 @@ export function ExportTab({ session, qaRun }: { session: DiagnosticSession; qaRu
   const adapter = platformAdapterForSession(session);
   const [copied, setCopied] = useState(false);
   const [clientDataAcknowledged, setClientDataAcknowledged] = useState(false);
-  const version = typeof chrome !== 'undefined' ? chrome.runtime.getManifest().version : '0.5.0';
+  const version = typeof chrome !== 'undefined' ? chrome.runtime.getManifest().version : '0.5.1';
   const report = useMemo(
     () => createExportReport(session, version, qaRun),
     [session, version, qaRun],
