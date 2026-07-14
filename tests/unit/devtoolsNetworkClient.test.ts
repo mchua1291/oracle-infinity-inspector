@@ -31,8 +31,26 @@ describe('DevTools network client', () => {
       onNavigated: vi.fn(),
     });
     finished?.(entry);
-    harCallback?.({ log: { entries: [entry] } });
+    harCallback?.({ entries: [entry] });
     expect(observed).toHaveLength(1);
     expect(observed[0]).toHaveLength(1);
+  });
+
+  it('treats a malformed initial HAR response as empty', () => {
+    let harCallback: ((har: unknown) => void) | undefined;
+    vi.stubGlobal('chrome', {
+      devtools: {
+        network: {
+          onRequestFinished: { addListener: vi.fn(), removeListener: vi.fn() },
+          onNavigated: { addListener: vi.fn(), removeListener: vi.fn() },
+          getHAR: (callback: (har: unknown) => void) => (harCallback = callback),
+        },
+      },
+    });
+    const onObservations = vi.fn();
+    startDevtoolsNetworkClient({ onObservations, onNavigated: vi.fn() });
+
+    expect(() => harCallback?.({})).not.toThrow();
+    expect(onObservations).not.toHaveBeenCalled();
   });
 });

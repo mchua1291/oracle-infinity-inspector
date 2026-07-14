@@ -14,12 +14,15 @@ npm run typecheck
 npm test
 npm run lint
 npm run build
+npm run package:extension
 npm run smoke:edge
 ```
 
 Load the generated `dist` directory from `edge://extensions` with Developer mode enabled.
 
 The Edge smoke test is optional on platforms without Microsoft Edge, but it should pass before a browser-facing release.
+
+Run `npm run screenshots` after intentional user-interface changes. Documentation screenshots must continue to use only the synthetic `example.test` session in the capture script.
 
 ## Pull requests
 

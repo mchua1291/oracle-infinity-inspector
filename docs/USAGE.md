@@ -2,6 +2,18 @@
 
 Use the inspector only on websites and environments you are authorized to test. The extension is passive, but captured request payloads and exported reports may contain client data.
 
+## Use the toolbar companion
+
+Select the Oracle Infinity Inspector toolbar icon for a lightweight page check.
+
+- **Scan current page** performs an explicit one-time DOM scan for loader and tag-manager evidence without enabling continuous monitoring.
+- The status view shows cached loader, event, library, tag-manager, parameter, and warning counts.
+- Up to three high-priority finding titles appear without exposing their captured values.
+- **Copy status summary without payload values** copies only the page URL and aggregate counts.
+- The popup updates while it remains open when the background session changes.
+
+The popup cannot open a particular DevTools panel or capture complete network payloads by itself. Press `F12`, select **Oracle Infinity**, and reload the page for a complete QA session.
+
 ## Start a complete capture
 
 1. Open the target page in Edge.

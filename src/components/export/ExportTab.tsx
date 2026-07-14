@@ -12,7 +12,7 @@ export function ExportTab({ session }: { session: DiagnosticSession }) {
   const adapter = platformAdapterForSession(session);
   const [copied, setCopied] = useState(false);
   const [clientDataAcknowledged, setClientDataAcknowledged] = useState(false);
-  const version = typeof chrome !== 'undefined' ? chrome.runtime.getManifest().version : '0.3.0';
+  const version = typeof chrome !== 'undefined' ? chrome.runtime.getManifest().version : '0.4.0';
   const report = useMemo(() => createExportReport(session, version), [session, version]);
   const markdown = useMemo(() => exportReportMarkdown(session, version), [session, version]);
   const baseName = reportFileName(session.pageUrl, report.platform.id);

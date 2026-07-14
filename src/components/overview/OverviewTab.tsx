@@ -4,6 +4,7 @@ import type {
   ExtensionSettings,
 } from '../../features/models';
 import { reloadInspectedWindow } from '../../features/chrome/inspectedWindowClient';
+import { runExtensionOperation } from '../../features/chrome/extensionLifecycle';
 import { platformAdapterForSession } from '../../features/platform/platformRegistry';
 import { diagnosticsActions } from '../../store/diagnosticsStore';
 import { Badge } from '../ui/Badge';
@@ -36,7 +37,9 @@ export function OverviewTab({
             </span>
             <Button
               onClick={() => {
-                void diagnosticsActions.reset(false).then(reloadInspectedWindow);
+                runExtensionOperation(() =>
+                  diagnosticsActions.reset(false).then(reloadInspectedWindow),
+                );
               }}
             >
               Clear session and reload inspected page

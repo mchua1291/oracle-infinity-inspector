@@ -27,7 +27,16 @@ function fakeChrome(storageData: Record<string, unknown>) {
     },
     tabs: {
       query: vi.fn().mockResolvedValue([]),
-      sendMessage: vi.fn().mockResolvedValue({ ok: true }),
+      sendMessage: vi.fn(async (_tabId: number, message: { type?: string }) =>
+        message.type === 'GET_DOM_SCAN'
+          ? {
+              pageUrl: 'https://www.example.test/page',
+              loaders: [],
+              tagManagers: [],
+              scannedAt: '2026-07-13T22:00:00.000Z',
+            }
+          : { ok: true },
+      ),
       onRemoved: { addListener: vi.fn() },
       onActivated: { addListener: vi.fn() },
     },
@@ -62,5 +71,22 @@ describe('service-worker session persistence', () => {
       tabId: 7,
     })) as { observations: Array<{ id: string }> };
     expect(restored.observations.map((event) => event.id)).toEqual(['persisted-event']);
+  });
+
+  it('supports an explicit one-time popup scan without enabling mutation monitoring', async () => {
+    const storageData: Record<string, unknown> = {};
+    const worker = fakeChrome(storageData);
+    vi.stubGlobal('chrome', worker.api);
+    vi.resetModules();
+    await import('../../src/background/serviceWorker');
+
+    await expect(worker.send({ type: 'SCAN_TAB_DOM_ONCE', tabId: 9 })).resolves.toEqual({
+      ok: true,
+    });
+    expect(worker.api.tabs.sendMessage).toHaveBeenCalledWith(9, { type: 'GET_DOM_SCAN' });
+    await expect(worker.send({ type: 'GET_TAB_SESSION', tabId: 9 })).resolves.toMatchObject({
+      pageUrl: 'https://www.example.test/page',
+      scannedAt: '2026-07-13T22:00:00.000Z',
+    });
   });
 });

@@ -1,6 +1,10 @@
 import { useSyncExternalStore } from 'react';
 import type { BackgroundTabSession, ExtensionMessage } from '../features/chrome/chromeMessageTypes';
 import {
+  isExtensionContextInvalidatedError,
+  runExtensionOperation,
+} from '../features/chrome/extensionLifecycle';
+import {
   detectInspectedExpression,
   getInspectedPageUrl,
 } from '../features/chrome/inspectedWindowClient';
@@ -143,6 +147,7 @@ export const diagnosticsActions = {
         state.session.pageContextDetected = await detectPageContext(state.session);
       setState({ ...state, ready: true });
     } catch (error) {
+      if (isExtensionContextInvalidatedError(error)) throw error;
       setState({
         ...state,
         ready: true,
@@ -163,11 +168,13 @@ export const diagnosticsActions = {
       droppedObservationCount: state.session.droppedObservationCount,
     };
     setState({ ...state, session: hydrate(source, state.session) });
-    void chrome.runtime.sendMessage({
-      type: 'NETWORK_OBSERVATIONS',
-      tabId,
-      observations,
-    } satisfies ExtensionMessage);
+    runExtensionOperation(() =>
+      chrome.runtime.sendMessage({
+        type: 'NETWORK_OBSERVATIONS',
+        tabId,
+        observations,
+      } satisfies ExtensionMessage),
+    );
   },
   async navigation(url: string) {
     const inspectedPageUrl = (await getInspectedPageUrl()) ?? url;
@@ -213,12 +220,14 @@ export const diagnosticsActions = {
       state.settings.expectedProfiles,
     );
     setState({ ...state, session });
-    void chrome.runtime.sendMessage({
-      type: 'PANEL_PAGE_URL_UPDATED',
-      tabId,
-      pageUrl,
-      entry,
-    } satisfies ExtensionMessage);
+    runExtensionOperation(() =>
+      chrome.runtime.sendMessage({
+        type: 'PANEL_PAGE_URL_UPDATED',
+        tabId,
+        pageUrl,
+        entry,
+      } satisfies ExtensionMessage),
+    );
   },
   async syncInspectedPageUrl() {
     const pageUrl = await getInspectedPageUrl();
@@ -252,7 +261,8 @@ export const diagnosticsActions = {
 
 if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
   chrome.runtime.onMessage.addListener((message: ExtensionMessage) => {
-    if (message.type === 'SESSION_UPDATED' && message.tabId === tabId) void refreshFromBackground();
+    if (message.type === 'SESSION_UPDATED' && message.tabId === tabId)
+      runExtensionOperation(refreshFromBackground);
     if (message.type === 'ACTIVE_TAB_CHANGED')
       setState({ ...state, inspectedTabActive: message.tabId === tabId });
     return false;
