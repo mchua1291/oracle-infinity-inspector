@@ -277,6 +277,173 @@ export const DiagnosticSessionSchema = z.object({
 });
 export type DiagnosticSession = z.infer<typeof DiagnosticSessionSchema>;
 
+export const QaScoreStatusSchema = z.enum(['not-run', 'in-progress', 'pass', 'warn', 'fail']);
+export type QaScoreStatus = z.infer<typeof QaScoreStatusSchema>;
+
+export const QaPresenceExpectationSchema = z.enum(['blocked', 'allowed', 'required']);
+export type QaPresenceExpectation = z.infer<typeof QaPresenceExpectationSchema>;
+
+export const QaParameterRequirementSchema = z.object({
+  name: z.string().min(1).max(120),
+  presence: z.enum(['required', 'optional', 'forbidden']),
+  allowEmpty: z.boolean(),
+  valuePattern: z.string().max(500).optional(),
+});
+export type QaParameterRequirement = z.infer<typeof QaParameterRequirementSchema>;
+
+export const QaEventMatcherSchema = z.object({
+  eventKind: PlatformEventKindSchema.optional(),
+  sourceType: PlatformSourceTypeSchema.optional(),
+  wtDl: z.string().max(40).optional(),
+  eventName: z.string().max(160).optional(),
+});
+
+export const QaExpectedEventSchema = z
+  .object({
+    id: z.string().min(1),
+    name: z.string().min(1).max(160),
+    matcher: QaEventMatcherSchema,
+    minCount: z.number().int().nonnegative(),
+    maxCount: z.number().int().nonnegative().optional(),
+    parameters: z.array(QaParameterRequirementSchema).max(100),
+  })
+  .refine((value) => value.maxCount === undefined || value.maxCount >= value.minCount, {
+    message: 'Maximum event count must be greater than or equal to the minimum.',
+    path: ['maxCount'],
+  });
+export type QaExpectedEvent = z.infer<typeof QaExpectedEventSchema>;
+
+export const QaConsentExpectationSchema = z.object({
+  state: z.enum(['before-choice', 'rejected', 'accepted', 'withdrawn']),
+  collection: QaPresenceExpectationSchema,
+  loader: QaPresenceExpectationSchema,
+  identifiers: QaPresenceExpectationSchema,
+});
+export type QaConsentExpectation = z.infer<typeof QaConsentExpectationSchema>;
+
+export const QaPlanStepSchema = z
+  .object({
+    id: z.string().min(1),
+    name: z.string().min(1).max(160),
+    instructions: z.string().max(2000).optional(),
+    kind: z.enum(['scenario', 'consent-checkpoint']),
+    expectedEvents: z.array(QaExpectedEventSchema).max(20),
+    unexpectedEventPolicy: z.enum(['ignore', 'warn', 'fail']),
+    consent: QaConsentExpectationSchema.optional(),
+  })
+  .superRefine((value, context) => {
+    if (value.kind === 'scenario' && value.expectedEvents.length === 0)
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['expectedEvents'],
+        message: 'Scenario steps require at least one expected event.',
+      });
+    if (value.kind === 'consent-checkpoint' && !value.consent)
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['consent'],
+        message: 'Consent checkpoint steps require consent expectations.',
+      });
+  });
+export type QaPlanStep = z.infer<typeof QaPlanStepSchema>;
+
+export const QaPlanSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1).max(160),
+  description: z.string().max(2000).optional(),
+  platformId: PlatformIdSchema.optional(),
+  domain: z.string().max(253).optional(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  steps: z.array(QaPlanStepSchema).min(1).max(50),
+});
+export type QaPlan = z.infer<typeof QaPlanSchema>;
+
+export const QaScoreFindingSchema = z.object({
+  code: z.string().min(1),
+  outcome: z.enum(['warn', 'fail']),
+  message: z.string(),
+  eventIds: z.array(z.string()),
+  parameterNames: z.array(z.string()),
+});
+export type QaScoreFinding = z.infer<typeof QaScoreFindingSchema>;
+
+export const QaExpectedEventResultSchema = z.object({
+  expectationId: z.string(),
+  expectationName: z.string(),
+  status: z.enum(['pass', 'warn', 'fail']),
+  matchedEventIds: z.array(z.string()),
+  findings: z.array(QaScoreFindingSchema),
+});
+export type QaExpectedEventResult = z.infer<typeof QaExpectedEventResultSchema>;
+
+export const QaConsentSnapshotSchema = z.object({
+  state: QaConsentExpectationSchema.shape.state,
+  pageUrl: z.string(),
+  observedAt: z.string(),
+  collectionEventCount: z.number().int().nonnegative(),
+  loaderDetected: z.boolean(),
+  identifierParameterNames: z.array(z.string()),
+});
+
+export const QaPlanStepRunSchema = z.object({
+  step: QaPlanStepSchema,
+  status: QaScoreStatusSchema,
+  startedAt: z.string().optional(),
+  completedAt: z.string().optional(),
+  startPageUrl: z.string().optional(),
+  baselineEventIds: z.array(z.string()),
+  observedEvents: z.array(PlatformNetworkObservationSchema),
+  expectationResults: z.array(QaExpectedEventResultSchema),
+  findings: z.array(QaScoreFindingSchema),
+  consentSnapshot: QaConsentSnapshotSchema.optional(),
+});
+export type QaPlanStepRun = z.infer<typeof QaPlanStepRunSchema>;
+
+export const QaPlanRunSchema = z.object({
+  id: z.string(),
+  planId: z.string(),
+  planName: z.string(),
+  platformId: PlatformIdSchema.optional(),
+  startedAt: z.string(),
+  completedAt: z.string().optional(),
+  activeStepId: z.string().optional(),
+  status: QaScoreStatusSchema,
+  steps: z.array(QaPlanStepRunSchema),
+});
+export type QaPlanRun = z.infer<typeof QaPlanRunSchema>;
+
+export const QaScorecardStepSchema = z.object({
+  stepId: z.string(),
+  name: z.string(),
+  kind: z.enum(['scenario', 'consent-checkpoint']),
+  status: QaScoreStatusSchema,
+  startedAt: z.string().optional(),
+  completedAt: z.string().optional(),
+  observedEventIds: z.array(z.string()),
+  expectationResults: z.array(QaExpectedEventResultSchema),
+  findings: z.array(QaScoreFindingSchema),
+  consentSnapshot: QaConsentSnapshotSchema.optional(),
+});
+
+export const QaScorecardSchema = z.object({
+  runId: z.string(),
+  planId: z.string(),
+  planName: z.string(),
+  status: QaScoreStatusSchema,
+  startedAt: z.string(),
+  completedAt: z.string().optional(),
+  summary: z.object({
+    total: z.number().int().nonnegative(),
+    passed: z.number().int().nonnegative(),
+    warnings: z.number().int().nonnegative(),
+    failed: z.number().int().nonnegative(),
+    notRun: z.number().int().nonnegative(),
+  }),
+  steps: z.array(QaScorecardStepSchema),
+});
+export type QaScorecard = z.infer<typeof QaScorecardSchema>;
+
 export const ExpectedDomainProfileSchema = z.object({
   domain: z.string(),
   platformId: PlatformIdSchema.optional(),
@@ -297,6 +464,7 @@ export const ExtensionSettingsSchema = z.object({
   enableReloadRecommendationBanner: z.boolean(),
   expectedProfiles: z.array(ExpectedDomainProfileSchema),
   importedCatalog: z.array(OracleParameterCatalogEntrySchema).max(1000),
+  qaPlans: z.array(QaPlanSchema).max(50).default([]),
 });
 export type ExtensionSettings = z.infer<typeof ExtensionSettingsSchema>;
 
@@ -386,6 +554,7 @@ export const ExportedDiagnosticReportSchema = z.object({
   supportTraffic: z.array(InfinitySupportTrafficSummarySchema),
   events: z.array(ExportedQaEventSchema),
   warnings: z.array(DiagnosticWarningSchema),
+  qaScorecard: QaScorecardSchema.optional(),
   notes: z.array(z.string()),
 });
 export type ExportedDiagnosticReport = z.infer<typeof ExportedDiagnosticReportSchema>;
@@ -396,4 +565,5 @@ export const DEFAULT_SETTINGS: ExtensionSettings = {
   enableReloadRecommendationBanner: true,
   expectedProfiles: [],
   importedCatalog: [],
+  qaPlans: [],
 };

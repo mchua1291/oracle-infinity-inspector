@@ -122,9 +122,11 @@ For a controlled QA environment, run the full local checks before loading a new 
 
 ```powershell
 npm run typecheck
+npm run audit:dead-code
 npm test
 npm run lint
 npm run build
+npm run smoke:edge
 ```
 
 See [Troubleshooting](TROUBLESHOOTING.md) if the panel is missing, blank, or does not update.

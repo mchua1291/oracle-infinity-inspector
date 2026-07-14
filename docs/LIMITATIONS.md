@@ -32,6 +32,14 @@ The extension can infer tag-manager injection only from DOM identifiers, inline 
 
 Independent tag-manager detection is intentionally limited to standard Google Tag Manager, Tealium iQ, and Adobe Tags CDN/bootstrap signatures. Self-hosted, proxied, renamed, consent-blocked, or unsupported managers may not be detected. Seeing a manager and an Infinity call on the same page establishes coexistence, not causation.
 
+QA Plan consent checkpoints do not inspect a consent manager's internal state, consent strings, cookies, server-side collection, or legal-policy configuration. They evaluate only client-configured expectations against collection calls captured during the step, current loader evidence, and parameters already classified as identifiers. Loader presence does not prove execution, and no browser-visible call does not prove that every downstream system is suppressed. Treat the result as repeatable QA evidence, not a legal-compliance verdict.
+
+## QA plans and scorecards
+
+A step captures collection events observed after **Start capture** and before **Complete step**. Requests that finish outside that interval may be attributed to the wrong step or missed. Keep steps focused, wait for traffic to settle, and rerun ambiguous results. Event matching is exact for configured values and regular expressions are evaluated locally with JavaScript semantics.
+
+Saved plans are local to the browser profile. The active scorecard is per inspected tab and lasts only for the browser extension session. It is not a shared test-management system, approval record, or immutable audit log.
+
 ## Static libraries
 
 Static Oracle Infinity resources are recognized by Oracle-hosted resource paths and extensions. A 304 response means the browser validated a cached copy; it does not prove the JavaScript executed successfully. First-party-proxied or self-hosted Infinity libraries may not match the Oracle-host rule and will remain outside the summary.
@@ -42,7 +50,7 @@ Chrome HAR may omit request bodies, and compressed/binary bodies may not be read
 
 ## Long sessions
 
-The inspector retains the latest 1,000 network observations per tab to keep diagnostics and report previews responsive. When the limit is reached, older observations are removed and an informational warning records the count. Use focused captures or separate exports when a test plan produces more than 1,000 supporting, library, loader, and collection requests.
+The inspector retains the latest 1,000 network observations per tab to keep diagnostics and report previews responsive. When the limit is reached, older observations are removed and an informational warning records the count. Completed QA steps retain their own collection-event snapshots for scorecard export, which can increase session-storage use during large plans. If Chromium rejects a session-storage write, the active in-memory run continues only while its extension context remains alive. Use focused captures or separate exports for high-volume plans.
 
 ## SPA routes
 

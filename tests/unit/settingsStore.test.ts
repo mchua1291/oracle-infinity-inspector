@@ -29,6 +29,17 @@ describe('settings storage migration', () => {
     await expect(loadSettings()).resolves.toEqual(currentSettings);
   });
 
+  it('adds an empty QA plan collection when loading settings saved by an older version', async () => {
+    const { qaPlans, ...olderSettings } = DEFAULT_SETTINGS;
+    expect(qaPlans).toEqual([]);
+    const get = vi.fn().mockResolvedValue({
+      'oracleImplementationInspector.settings': olderSettings,
+    });
+    vi.stubGlobal('chrome', { storage: { local: { get } } });
+
+    await expect(loadSettings()).resolves.toEqual(DEFAULT_SETTINGS);
+  });
+
   it('writes validated settings only to the product-neutral key', async () => {
     const set = vi.fn().mockResolvedValue(undefined);
     vi.stubGlobal('chrome', { storage: { local: { set } } });

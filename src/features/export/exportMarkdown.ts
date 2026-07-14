@@ -1,4 +1,10 @@
-import type { DiagnosticSession, ExportedQaEvent, ObservedParameter } from '../models';
+import type {
+  DiagnosticSession,
+  ExportedQaEvent,
+  ObservedParameter,
+  QaPlanRun,
+  QaScorecard,
+} from '../models';
 import type { PlatformAdapter } from '../platform/platformAdapter';
 import { platformAdapterForSession } from '../platform/platformRegistry';
 import { createExportReport } from './exportJson';
@@ -97,10 +103,57 @@ function eventSection(event: ExportedQaEvent, adapter: PlatformAdapter): string[
   ];
 }
 
-export function exportReportMarkdown(session: DiagnosticSession, version?: string): string {
+function scorecardSection(scorecard?: QaScorecard): string[] {
+  if (!scorecard) return [];
+  return [
+    '## QA contract scorecard',
+    '',
+    `- Plan: ${text(scorecard.planName)}`,
+    `- Overall result: **${scorecard.status.toUpperCase()}**`,
+    `- Steps: ${scorecard.summary.total} total / ${scorecard.summary.passed} pass / ${scorecard.summary.warnings} warn / ${scorecard.summary.failed} fail / ${scorecard.summary.notRun} not run`,
+    '',
+    '| Step | Type | Result | Events | Findings |',
+    '| --- | --- | --- | ---: | ---: |',
+    ...scorecard.steps.map(
+      (step) =>
+        `| ${text(step.name)} | ${text(step.kind)} | **${step.status.toUpperCase()}** | ${step.observedEventIds.length} | ${step.findings.length} |`,
+    ),
+    '',
+    ...scorecard.steps.flatMap((step, index) => [
+      `### Step ${index + 1}: ${text(step.name)} - ${step.status.toUpperCase()}`,
+      '',
+      ...(step.consentSnapshot
+        ? [
+            `- Consent state: ${text(step.consentSnapshot.state)}`,
+            `- Collection events: ${step.consentSnapshot.collectionEventCount}`,
+            `- Loader detected: ${step.consentSnapshot.loaderDetected ? 'yes' : 'no'}`,
+            `- Identifier parameters: ${step.consentSnapshot.identifierParameterNames.length ? step.consentSnapshot.identifierParameterNames.map(text).join(', ') : 'none'}`,
+          ]
+        : []),
+      ...(step.expectationResults.length
+        ? step.expectationResults.map(
+            (result) =>
+              `- ${text(result.expectationName)}: **${result.status.toUpperCase()}** (${result.matchedEventIds.length} matching event${result.matchedEventIds.length === 1 ? '' : 's'})`,
+          )
+        : []),
+      ...(step.findings.length
+        ? step.findings.map(
+            (finding) => `- **${finding.outcome.toUpperCase()}:** ${text(finding.message)}`,
+          )
+        : ['- No scorecard findings.']),
+      '',
+    ]),
+  ];
+}
+
+export function exportReportMarkdown(
+  session: DiagnosticSession,
+  version?: string,
+  qaRun?: QaPlanRun,
+): string {
   const adapter = platformAdapterForSession(session);
   const { identity } = adapter;
-  const report = createExportReport(session, version);
+  const report = createExportReport(session, version, qaRun);
   const { summary } = report;
   return [
     `# ${identity.productName} QA Report`,
@@ -119,6 +172,7 @@ export function exportReportMarkdown(session: DiagnosticSession, version?: strin
       .map((detail) => `- ${detail.label}: ${text(detail.value)}`),
     `- Capture may be incomplete: ${report.page.captureMayBeIncomplete ? 'yes' : 'no'}`,
     '',
+    ...scorecardSection(report.qaScorecard),
     '## Implementation evidence',
     '',
     '### Tag managers',

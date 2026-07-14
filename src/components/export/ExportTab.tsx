@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { DiagnosticSession } from '../../features/models';
+import type { DiagnosticSession, QaPlanRun } from '../../features/models';
 import { createExportReport, exportReportJson } from '../../features/export/exportJson';
 import { exportReportMarkdown } from '../../features/export/exportMarkdown';
 import { platformAdapterForSession } from '../../features/platform/platformRegistry';
@@ -8,13 +8,19 @@ import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { Notice } from '../ui/Notice';
 
-export function ExportTab({ session }: { session: DiagnosticSession }) {
+export function ExportTab({ session, qaRun }: { session: DiagnosticSession; qaRun?: QaPlanRun }) {
   const adapter = platformAdapterForSession(session);
   const [copied, setCopied] = useState(false);
   const [clientDataAcknowledged, setClientDataAcknowledged] = useState(false);
-  const version = typeof chrome !== 'undefined' ? chrome.runtime.getManifest().version : '0.4.0';
-  const report = useMemo(() => createExportReport(session, version), [session, version]);
-  const markdown = useMemo(() => exportReportMarkdown(session, version), [session, version]);
+  const version = typeof chrome !== 'undefined' ? chrome.runtime.getManifest().version : '0.5.0';
+  const report = useMemo(
+    () => createExportReport(session, version, qaRun),
+    [session, version, qaRun],
+  );
+  const markdown = useMemo(
+    () => exportReportMarkdown(session, version, qaRun),
+    [session, version, qaRun],
+  );
   const baseName = reportFileName(session.pageUrl, report.platform.id);
   const parameterCount = report.events.reduce(
     (count, event) => count + event.payload.parameterCount,
@@ -46,6 +52,21 @@ export function ExportTab({ session }: { session: DiagnosticSession }) {
             <Metric label="Parameters" value={parameterCount} />
             <Metric label="Empty / null" value={emptyValueCount} warning={emptyValueCount > 0} />
             <Metric label="Diagnostics" value={report.warnings.length} />
+            {report.qaScorecard && (
+              <>
+                <Metric label="QA steps passed" value={report.qaScorecard.summary.passed} />
+                <Metric
+                  label="QA steps warned"
+                  value={report.qaScorecard.summary.warnings}
+                  warning={report.qaScorecard.summary.warnings > 0}
+                />
+                <Metric
+                  label="QA steps failed"
+                  value={report.qaScorecard.summary.failed}
+                  warning={report.qaScorecard.summary.failed > 0}
+                />
+              </>
+            )}
           </dl>
         </Card>
         <Card>
@@ -70,7 +91,11 @@ export function ExportTab({ session }: { session: DiagnosticSession }) {
             <Button
               disabled={!clientDataAcknowledged}
               onClick={() =>
-                download(`${baseName}.json`, exportReportJson(session, version), 'application/json')
+                download(
+                  `${baseName}.json`,
+                  exportReportJson(session, version, qaRun),
+                  'application/json',
+                )
               }
             >
               Export complete QA report (JSON)

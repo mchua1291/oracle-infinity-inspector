@@ -21,8 +21,10 @@ active DevTools panel -> activate dormant content scanner
 Inspected DOM -> platform adapter loader scanners + tag-manager scanners -> service worker session cache -> DevTools panel store
 Inspected network -> adapter registry -> product parser/classifiers -> panel store
 panel store -> active platform adapter -> diagnostics/summaries -> tabs/export
+saved QA plan -> pure contract evaluator + captured step evidence -> pass/warn/fail scorecard -> export
 panel store -> service worker in-memory summary -> actionable toolbar companion
-settings -> chrome.storage.local
+settings + saved QA plans -> chrome.storage.local
+current per-tab QA run -> chrome.storage.session
 explicit export -> local Blob download or clipboard
 ```
 
@@ -53,9 +55,15 @@ The parser layer is independent from React and Chrome APIs:
 
 Diagnostics are recomputed from immutable session evidence. Rules cover absent or duplicate loaders, no collection after a loader, account/environment mismatches, late capture, malformed or failed requests, duplicate page-view heuristics, sensitive values, unknown parameters, high custom cardinality, and documented commerce event/payload consistency. Every result has severity, evidence identifiers, and a recommendation; documentation-backed commerce findings also carry their Oracle source URL.
 
+## QA contract engine
+
+QA plans are validated, platform-aware data rather than component state. A plan contains ordered scenario or consent-checkpoint steps. Scenario expectations can match event kind, source, `wt.dl`, and `wt.ev`, then enforce count, parameter presence, empty-value, and regular-expression rules. Consent checkpoints compare configured blocked/allowed/required expectations with browser-visible collection events, current loader evidence, and identifier-classified parameters.
+
+The evaluator is a pure TypeScript module independent from React and Chrome APIs. Starting a step records the current collection-event IDs as its baseline; completing it evaluates only later events and stores an immutable evidence snapshot. Existing event-scoped diagnostics are folded into the score. High diagnostics fail a step, lower actionable diagnostics warn, and contract violations fail. The run remains in progress until every step has a result, then resolves to fail, warn, or pass in that order.
+
 ## Session and persistence
 
-Full request observations and bodies are not written to long-term storage. They live in the panel store and a bounded `chrome.storage.session` per-tab cache until cleared, the tab closes, or the browser extension session ends. The latest 1,000 observations are retained; the UI reports when older entries are removed. Only user settings, expected profiles, and explicitly imported catalog entries use `chrome.storage.local`. Files are created only when the user acknowledges the raw-data handling notice and initiates an export.
+Full request observations and bodies are not written to long-term storage. They live in the panel store and a bounded `chrome.storage.session` per-tab cache until cleared, the tab closes, or the browser extension session ends. The current QA run and completed-step event snapshots use the same per-tab session storage so a scorecard can span page navigation. The latest 1,000 live observations are retained; the UI reports when older entries are removed. Only user settings, expected profiles, saved QA plan definitions, and explicitly imported catalog entries use `chrome.storage.local`. Files are created only when the user acknowledges the raw-data handling notice and initiates an export.
 
 ## Build structure
 

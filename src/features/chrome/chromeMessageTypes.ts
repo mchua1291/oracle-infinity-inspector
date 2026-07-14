@@ -3,6 +3,7 @@ import type {
   DiagnosticSummary,
   PlatformLoaderObservation,
   PlatformNetworkObservation,
+  QaPlanRun,
   TagManagerObservation,
   TimelineEntry,
 } from '../models';
@@ -22,6 +23,7 @@ export type ExtensionMessage =
   | { type: 'ACTIVATE_DOM_INSPECTION'; monitorMutations: boolean }
   | { type: 'GET_TAB_SESSION'; tabId: number }
   | { type: 'NETWORK_OBSERVATIONS'; tabId: number; observations: PlatformNetworkObservation[] }
+  | { type: 'SET_QA_RUN'; tabId: number; qaRun?: QaPlanRun }
   | { type: 'CLEAR_SESSION'; tabId: number; pageUrl?: string }
   | { type: 'GET_TAB_SUMMARY'; tabId: number }
   | { type: 'GET_ACTIVE_TAB_ID' }
@@ -42,6 +44,7 @@ export interface BackgroundTabSession {
   scannedAt: string;
   timeline: TimelineEntry[];
   droppedObservationCount: number;
+  qaRun?: QaPlanRun;
 }
 
 export interface PopupSummaryResponse {

@@ -13,6 +13,7 @@ The shared runtime owns:
 - dormant DOM inspection and mutation monitoring
 - bounded per-tab session persistence
 - parameter, warning, timeline, and export presentation
+- reusable QA-plan definitions, scenario execution, consent-checkpoint evaluation, and scorecard presentation
 - sensitive-value safeguards
 - JSON/Markdown download and clipboard handling
 - build verification, CI, and Edge smoke testing
@@ -59,13 +60,14 @@ Expected domain profiles also carry `platformId`. An adapter supplies field defi
 
 ## Export compatibility
 
-JSON QA reports use schema version 2 and include:
+JSON QA reports use schema version 3 and include:
 
 - adapter ID
 - product family and display name
 - platform generation
 - adapter-specific report type and catalog version
 - generic event/source strings and platform-specific event details
+- an optional platform-neutral QA contract scorecard with step results, event expectation outcomes, consent snapshots, and findings
 
 Consumers should check `schemaVersion`, `platform.id`, and `reportType` before interpreting product-specific fields. A future incompatible report change must increment the schema version.
 
