@@ -30,6 +30,8 @@ The Edge smoke test is optional on platforms without Microsoft Edge, but it shou
 - Do not introduce remote executable code, telemetry, request mutation, or a backend data path.
 - Run type checking, tests, lint, formatting checks, and a production build before opening a pull request.
 - Explain user-visible changes and any privacy or permission impact.
+- Keep shared browser, storage, UI, and export code platform-neutral. New product-specific endpoints, schemas, terminology, profile fields, and diagnostics belong behind a `PlatformAdapter`.
+- Add an adapter registration test and synthetic request/DOM fixtures for each supported platform generation.
 
 ## Test data safety
 
@@ -38,3 +40,5 @@ Never commit real client payloads, account GUIDs, email addresses, identifiers, 
 ## Documentation
 
 Update the relevant guide whenever behavior, permissions, installation steps, supported traffic, or a limitation changes. Parameter catalog changes must retain a documentation verification date and an official source.
+
+See [docs/PLATFORM_ADAPTERS.md](docs/PLATFORM_ADAPTERS.md) before changing request routing, loader detection, expected profiles, or export schemas.

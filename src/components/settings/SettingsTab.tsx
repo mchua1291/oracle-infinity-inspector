@@ -1,10 +1,10 @@
 import { useState, type ChangeEvent } from 'react';
 import {
-  OracleParameterCatalogEntrySchema,
+  ParameterCatalogEntrySchema,
   type ExtensionSettings,
   type ExpectedDomainProfile,
 } from '../../features/models';
-import { ORACLE_PARAMETER_CATALOG } from '../../features/infinity/oracleParameterCatalog';
+import { getPlatformAdapter } from '../../features/platform/platformRegistry';
 import { diagnosticsActions } from '../../store/diagnosticsStore';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
@@ -15,10 +15,14 @@ import { z } from 'zod';
 export function SettingsTab({
   settings,
   pageUrl,
+  platformId,
 }: {
   settings: ExtensionSettings;
   pageUrl: string;
+  platformId: string;
 }) {
+  const adapter = getPlatformAdapter(platformId);
+  const { identity } = adapter;
   const [draft, setDraft] = useState(settings);
   const [message, setMessage] = useState('');
   let domain = '';
@@ -28,9 +32,12 @@ export function SettingsTab({
     domain = '';
   }
   const profile = draft.expectedProfiles.find(
-    (item) => item.domain.toLowerCase() === domain.toLowerCase(),
+    (item) =>
+      item.domain.toLowerCase() === domain.toLowerCase() &&
+      (!item.platformId || item.platformId === identity.id),
   ) ?? {
     domain,
+    platformId: identity.id,
     environment: 'unknown' as const,
     accountGuids: [],
   };
@@ -41,9 +48,11 @@ export function SettingsTab({
       ...draft,
       expectedProfiles: [
         ...draft.expectedProfiles.filter(
-          (item) => item.domain.toLowerCase() !== domain.toLowerCase(),
+          (item) =>
+            item.domain.toLowerCase() !== domain.toLowerCase() ||
+            (item.platformId && item.platformId !== identity.id),
         ),
-        next,
+        { ...next, platformId: identity.id },
       ],
     });
   const importCatalog = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -51,7 +60,7 @@ export function SettingsTab({
     if (!file) return;
     try {
       const entries = z
-        .array(OracleParameterCatalogEntrySchema)
+        .array(ParameterCatalogEntrySchema)
         .max(1000)
         .parse(JSON.parse(await file.text()));
       const deduplicated = [
@@ -75,7 +84,7 @@ export function SettingsTab({
           />
           <Toggle
             label="Enable optional page-context detection"
-            detail="Checks only whether window.ORA exists; no ORA methods are called."
+            detail={`Checks only whether ${identity.pageContextLabel} exists; no platform methods are called.`}
             checked={draft.enablePageContextDetection}
             onChange={(value) => update('enablePageContextDetection', value)}
           />
@@ -92,89 +101,45 @@ export function SettingsTab({
           {domain || 'No valid inspected hostname is available.'}
         </p>
         <div className="mt-4 grid gap-3">
-          <Field label="Environment">
-            <select
-              value={profile.environment}
-              onChange={(event) =>
-                updateProfile({
-                  ...profile,
-                  environment: event.target.value as ExpectedDomainProfile['environment'],
-                })
-              }
-              className="w-full rounded-lg border border-stone-300 px-3 py-2"
-            >
-              <option>unknown</option>
-              <option>test</option>
-              <option>production</option>
-            </select>
-          </Field>
-          <Field label="Expected account GUIDs (comma-separated, stored locally)">
-            <input
-              maxLength={2000}
-              value={profile.accountGuids.join(', ')}
-              onChange={(event) =>
-                updateProfile({
-                  ...profile,
-                  accountGuids: event.target.value
-                    .split(',')
-                    .map((item) => item.trim())
-                    .filter(Boolean),
-                })
-              }
-              className="w-full rounded-lg border border-stone-300 px-3 py-2"
-            />
-          </Field>
-          <Field label="Tag ID">
-            <input
-              maxLength={200}
-              value={profile.tagId ?? ''}
-              onChange={(event) =>
-                updateProfile({ ...profile, tagId: event.target.value || undefined })
-              }
-              className="w-full rounded-lg border border-stone-300 px-3 py-2"
-            />
-          </Field>
-          <Field label="_ora.config">
-            <input
-              maxLength={500}
-              value={profile.config ?? ''}
-              onChange={(event) =>
-                updateProfile({ ...profile, config: event.target.value || undefined })
-              }
-              className="w-full rounded-lg border border-stone-300 px-3 py-2"
-            />
-          </Field>
-          <Field label="Expected load mode">
-            <select
-              value={profile.loadMode ?? ''}
-              onChange={(event) =>
-                updateProfile({
-                  ...profile,
-                  loadMode: (event.target.value || undefined) as ExpectedDomainProfile['loadMode'],
-                })
-              }
-              className="w-full rounded-lg border border-stone-300 px-3 py-2"
-            >
-              <option value="">Not specified</option>
-              {[
-                'synchronous',
-                'asynchronous',
-                'deferred',
-                'dynamically-inserted',
-                'tag-manager-injected',
-                'unknown',
-              ].map((item) => (
-                <option key={item}>{item}</option>
-              ))}
-            </select>
-          </Field>
+          {adapter.expectedProfileFields.map((field) => (
+            <Field label={field.label} key={field.key}>
+              {field.control === 'select' ? (
+                <select
+                  value={adapter.readExpectedProfileField(profile, field.key)}
+                  onChange={(event) =>
+                    updateProfile(
+                      adapter.writeExpectedProfileField(profile, field.key, event.target.value),
+                    )
+                  }
+                  className="w-full rounded-lg border border-stone-300 px-3 py-2"
+                >
+                  {field.options?.map((option) => (
+                    <option key={option || 'not-specified'} value={option}>
+                      {option || 'Not specified'}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  maxLength={field.maxLength}
+                  value={adapter.readExpectedProfileField(profile, field.key)}
+                  onChange={(event) =>
+                    updateProfile(
+                      adapter.writeExpectedProfileField(profile, field.key, event.target.value),
+                    )
+                  }
+                  className="w-full rounded-lg border border-stone-300 px-3 py-2"
+                />
+              )}
+            </Field>
+          ))}
         </div>
       </Card>
       <Card>
         <h2 className="font-semibold">Local parameter catalog</h2>
         <p className="mt-2 text-sm text-stone-600">
-          Bundled catalog: {ORACLE_PARAMETER_CATALOG.entries.length} documentation-backed entries ·
-          version {ORACLE_PARAMETER_CATALOG.version}.
+          Bundled catalog: {adapter.catalogEntries.length} documentation-backed entries · version{' '}
+          {adapter.catalogVersion}.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           <label className="cursor-pointer rounded-lg bg-stone-200 px-3 py-2 text-sm font-semibold">
@@ -189,12 +154,8 @@ export function SettingsTab({
           <Button
             onClick={() =>
               download(
-                'oracle-infinity-parameter-catalog.json',
-                JSON.stringify(
-                  [...ORACLE_PARAMETER_CATALOG.entries, ...draft.importedCatalog],
-                  null,
-                  2,
-                ),
+                `${identity.id}-parameter-catalog.json`,
+                JSON.stringify([...adapter.catalogEntries, ...draft.importedCatalog], null, 2),
               )
             }
           >

@@ -3,34 +3,17 @@ import type {
   DiagnosticSession,
   DiagnosticSeverity,
   DiagnosticWarning,
-  InfinityEventKind,
-  InfinitySourceType,
   ObservedParameter,
-  OracleNetworkObservation,
+  PlatformEventKind,
+  PlatformNetworkObservation,
+  PlatformSourceType,
 } from '../../features/models';
-import { commerceEventDefinition } from '../../features/diagnostics/commerceValidator';
-import { isCollectionObservation } from '../../features/network/observationCollection';
+import type { PlatformAdapter } from '../../features/platform/platformAdapter';
+import { platformAdapterForSession } from '../../features/platform/platformRegistry';
 import { Badge } from '../ui/Badge';
 import { Card } from '../ui/Card';
 import { EmptyState } from '../ui/EmptyState';
 import { SearchInput } from '../ui/SearchInput';
-
-function eventLabel(event: OracleNetworkObservation): string {
-  const commerce = commerceEventDefinition(event);
-  if (commerce) return commerce.label;
-  const eventValue = event.parameters.find(
-    (parameter) => parameter.name.toLowerCase() === 'wt.ev' && parameter.value,
-  )?.value;
-  if (typeof eventValue === 'string') return eventValue;
-  const title = event.parameters.find(
-    (parameter) => parameter.name.toLowerCase() === 'wt.ti' && parameter.value,
-  )?.value;
-  const kind = event.eventKind
-    .split('-')
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
-  return typeof title === 'string' ? `${kind} — ${title}` : kind;
-}
 
 function isEmpty(parameter: ObservedParameter): boolean {
   return parameter.value === '' || parameter.value === null;
@@ -44,14 +27,23 @@ function severityTone(severity: DiagnosticSeverity): 'danger' | 'warning' | 'neu
 }
 
 export function NetworkEventsTab({ session }: { session: DiagnosticSession }) {
+  const adapter = platformAdapterForSession(session);
   const [search, setSearch] = useState('');
-  const [source, setSource] = useState<'all' | InfinitySourceType>('all');
-  const [kind, setKind] = useState<'all' | InfinityEventKind>('all');
+  const [source, setSource] = useState<'all' | PlatformSourceType>('all');
+  const [kind, setKind] = useState<'all' | PlatformEventKind>('all');
   const [warningOnly, setWarningOnly] = useState(false);
   const [selectedId, setSelectedId] = useState<string>();
   const collectionEvents = useMemo(
-    () => session.networkObservations.filter(isCollectionObservation),
-    [session.networkObservations],
+    () => session.networkObservations.filter(adapter.isCollectionObservation),
+    [adapter, session.networkObservations],
+  );
+  const sourceOptions = useMemo(
+    () => ['all', ...new Set(collectionEvents.map((event) => event.sourceType))],
+    [collectionEvents],
+  );
+  const kindOptions = useMemo(
+    () => ['all', ...new Set(collectionEvents.map((event) => event.eventKind))],
+    [collectionEvents],
   );
   const findingsByEvent = useMemo(() => {
     const byEvidence = new Map<string, DiagnosticWarning[]>();
@@ -96,8 +88,8 @@ export function NetworkEventsTab({ session }: { session: DiagnosticSession }) {
   if (!collectionEvents.length)
     return (
       <EmptyState
-        title="No browser-visible Infinity events"
-        detail="Open DevTools before navigation, reload the page, and trigger the expected interactions. Backend DC API calls cannot appear here."
+        title={`No browser-visible ${adapter.identity.shortName} events`}
+        detail={`Open DevTools before navigation, reload the page, and trigger the expected interactions. Backend ${adapter.identity.shortName} calls cannot appear here.`}
       />
     );
 
@@ -124,20 +116,13 @@ export function NetworkEventsTab({ session }: { session: DiagnosticSession }) {
           label="Source filter"
           value={source}
           onChange={(value) => setSource(value as typeof source)}
-          options={['all', 'cx-tag-network', 'dcapi-browser-visible']}
+          options={sourceOptions}
         />
         <Filter
           label="Event type filter"
           value={kind}
           onChange={(value) => setKind(value as typeof kind)}
-          options={[
-            'all',
-            'page-view',
-            'click-event',
-            'event-code-specific',
-            'dcapi-batch',
-            'unknown',
-          ]}
+          options={kindOptions}
         />
         <label className="flex items-center gap-2 px-2 text-xs">
           <input
@@ -188,7 +173,9 @@ export function NetworkEventsTab({ session }: { session: DiagnosticSession }) {
                         {new Date(event.timestamp).toLocaleTimeString()}
                       </span>
                     </td>
-                    <td className="max-w-xs px-3 py-3 font-medium">{eventLabel(event)}</td>
+                    <td className="max-w-xs px-3 py-3 font-medium">
+                      {adapter.eventDisplayName(event)}
+                    </td>
                     <td className="px-3 py-3">
                       <Badge
                         tone={event.sourceType === 'dcapi-browser-visible' ? 'info' : 'neutral'}
@@ -220,6 +207,7 @@ export function NetworkEventsTab({ session }: { session: DiagnosticSession }) {
           event={selected}
           sequence={selected ? (eventSequence.get(selected.id) ?? 0) : 0}
           findings={selectedFindings}
+          adapter={adapter}
         />
       </div>
     </div>
@@ -255,10 +243,12 @@ function EventDetails({
   event,
   sequence,
   findings,
+  adapter,
 }: {
-  event?: OracleNetworkObservation;
+  event?: PlatformNetworkObservation;
   sequence: number;
   findings: DiagnosticWarning[];
+  adapter: PlatformAdapter;
 }) {
   if (!event)
     return (
@@ -271,19 +261,19 @@ function EventDetails({
     {
       key: 'standard',
       title: 'Out-of-the-box parameters',
-      description: 'Matched to the verified Oracle parameter catalog.',
+      description: `Matched to the verified ${adapter.identity.productName} parameter catalog.`,
       parameters: event.parameters.filter((parameter) => parameter.classification === 'standard'),
     },
     {
       key: 'custom',
       title: 'Custom parameters',
-      description: 'Implementation-defined parameters not reserved by the Oracle catalog.',
+      description: `Implementation-defined parameters not reserved by the ${adapter.identity.productName} catalog.`,
       parameters: event.parameters.filter((parameter) => parameter.classification === 'custom'),
     },
     {
       key: 'unknown',
       title: 'Needs review',
-      description: 'Parameters without a match in the bundled Oracle documentation catalog.',
+      description: `Parameters without a match in the bundled ${adapter.identity.documentationLabel.toLowerCase()} catalog.`,
       parameters: event.parameters.filter((parameter) => parameter.classification === 'unknown'),
     },
   ];
@@ -296,7 +286,7 @@ function EventDetails({
           <p className="text-[11px] font-semibold uppercase tracking-wider text-stone-500">
             Event #{sequence}
           </p>
-          <h3 className="mt-1 text-lg font-semibold">{eventLabel(event)}</h3>
+          <h3 className="mt-1 text-lg font-semibold">{adapter.eventDisplayName(event)}</h3>
         </div>
         <Badge tone={event.warnings.length || findings.length ? 'warning' : 'success'}>
           {event.requestBodyParseStatus}
@@ -310,10 +300,12 @@ function EventDetails({
         <dd>{event.requestMethod}</dd>
         <dt className="text-stone-500">Response</dt>
         <dd>{event.responseStatus}</dd>
-        <dt className="text-stone-500">Account GUID</dt>
-        <dd className="break-all font-mono">{event.accountGuid || 'Unavailable'}</dd>
-        <dt className="text-stone-500">wt.dl</dt>
-        <dd className="font-mono">{event.wtDl ?? 'Unavailable'}</dd>
+        {adapter.networkEventDetails(event).map((detail) => (
+          <div className="contents" key={detail.label}>
+            <dt className="text-stone-500">{detail.label}</dt>
+            <dd className="break-all font-mono">{detail.value}</dd>
+          </div>
+        ))}
       </dl>
       <div className="mt-4">
         <p className="text-[11px] font-semibold uppercase tracking-wider text-stone-500">
@@ -371,7 +363,7 @@ function EventDetails({
                   rel="noreferrer"
                   className="mt-2 inline-block font-semibold text-sky-700 underline decoration-sky-300 underline-offset-2"
                 >
-                  Oracle commerce guidance
+                  {adapter.identity.guidanceLabel}
                 </a>
               )}
             </div>
@@ -381,7 +373,7 @@ function EventDetails({
 
       <div className="mt-5 max-h-[55vh] space-y-5 overflow-auto pr-1">
         {groups.map(({ key, ...group }) => (
-          <ParameterGroup key={key} {...group} />
+          <ParameterGroup key={key} {...group} adapter={adapter} />
         ))}
       </div>
     </Card>
@@ -392,10 +384,12 @@ function ParameterGroup({
   title,
   description,
   parameters,
+  adapter,
 }: {
   title: string;
   description: string;
   parameters: ObservedParameter[];
+  adapter: PlatformAdapter;
 }) {
   return (
     <section>
@@ -413,7 +407,9 @@ function ParameterGroup({
               <tr>
                 <th className="px-3 py-2 font-semibold">Parameter</th>
                 <th className="px-3 py-2 font-semibold">Observed value</th>
-                <th className="px-3 py-2 font-semibold">Origin / Oracle definition</th>
+                <th className="px-3 py-2 font-semibold">
+                  Origin / {adapter.identity.productName} definition
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -448,7 +444,7 @@ function ParameterGroup({
                           rel="noreferrer"
                           className="mt-1 block font-semibold text-sky-700 underline decoration-sky-300 underline-offset-2"
                         >
-                          Oracle documentation
+                          {adapter.identity.documentationLabel}
                         </a>
                       )}
                     </td>

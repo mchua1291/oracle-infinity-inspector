@@ -3,11 +3,13 @@ import { createRoot } from 'react-dom/client';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import type { ExtensionMessage, PopupSummaryResponse } from '../features/chrome/chromeMessageTypes';
+import { getPlatformIdentity } from '../features/platform/platformIdentityRegistry';
 import '../styles/globals.css';
 
 function Popup() {
   const [data, setData] = useState<PopupSummaryResponse>();
   const [loading, setLoading] = useState(true);
+  const platform = getPlatformIdentity(data?.platformId);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -35,7 +37,7 @@ function Popup() {
         </div>
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#7b7570]">
-            Oracle Infinity
+            {platform.productName}
           </p>
           <h1 className="font-semibold">Inspector quick status</h1>
         </div>
@@ -47,7 +49,7 @@ function Popup() {
             {data.pageUrl || 'Current tab'}
           </p>
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">CX Tag</span>
+            <span className="text-sm font-medium">{platform.loaderLabel}</span>
             <Badge tone={data.summary.tagStatus === 'detected' ? 'success' : 'neutral'}>
               {data.summary.tagStatus}
             </Badge>
@@ -89,7 +91,7 @@ function Popup() {
         {loading ? 'Refreshing…' : 'Refresh quick status'}
       </Button>
       <p className="mt-2 text-xs leading-5 text-[#6f6964]">
-        For full request details, open Edge DevTools on this tab and select the Oracle Infinity
+        For full request details, open Edge DevTools on this tab and select the {platform.panelName}{' '}
         panel. Chromium does not provide a reliable way for this popup to open that panel directly.
       </p>
     </main>

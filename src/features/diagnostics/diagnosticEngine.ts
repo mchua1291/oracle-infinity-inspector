@@ -7,6 +7,7 @@ import type {
 import { buildCommerceDiagnostics } from './commerceValidator';
 import { detectDuplicatePageViews } from './duplicateEventDetector';
 import { summarizeInfinityLibraries } from '../infinity/librarySummary';
+import { isExpectedDcsdatTimestamp } from '../infinity/sensitiveValueScanner';
 import { isCollectionObservation, isSupportObservation } from '../network/observationCollection';
 
 function warning(
@@ -360,6 +361,22 @@ export function buildDiagnostics(
           [parameter.id],
         ),
       );
+    if (
+      parameter.name.toLowerCase() === 'dcsdat' &&
+      parameter.value !== '' &&
+      parameter.value !== null &&
+      !isExpectedDcsdatTimestamp(parameter.value)
+    )
+      warnings.push(
+        warning(
+          'invalid-dcsdat-format',
+          'low',
+          'Unexpected dcsdat format',
+          'dcsdat does not contain the expected tag-generated millisecond timestamp.',
+          'Confirm that the Infinity Tag generates dcsdat and that the system parameter has not been repurposed.',
+          [parameter.id],
+        ),
+      );
     if (parameter.sensitivity === 'email')
       warnings.push(
         warning(
@@ -469,6 +486,10 @@ export function buildSummary(session: DiagnosticSession): DiagnosticSummary {
     dcApiEventCount: collection.filter((event) => event.sourceType === 'dcapi-browser-visible')
       .length,
     supportTrafficCount: session.networkObservations.filter(isSupportObservation).length,
+    sourceBreakdown: collection.reduce<Record<string, number>>((counts, event) => {
+      counts[event.sourceType] = (counts[event.sourceType] ?? 0) + 1;
+      return counts;
+    }, {}),
     standardParameterCount: session.parameters.filter((item) => item.classification === 'standard')
       .length,
     customParameterCount: session.parameters.filter((item) => item.classification === 'custom')

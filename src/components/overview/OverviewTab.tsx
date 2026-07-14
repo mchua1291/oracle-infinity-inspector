@@ -3,10 +3,8 @@ import type {
   DiagnosticSummary,
   ExtensionSettings,
 } from '../../features/models';
-import {
-  copyOracleDebugUrl,
-  reloadInspectedWindow,
-} from '../../features/chrome/inspectedWindowClient';
+import { reloadInspectedWindow } from '../../features/chrome/inspectedWindowClient';
+import { platformAdapterForSession } from '../../features/platform/platformRegistry';
 import { diagnosticsActions } from '../../store/diagnosticsStore';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
@@ -23,6 +21,9 @@ export function OverviewTab({
   summary: DiagnosticSummary;
   settings: ExtensionSettings;
 }) {
+  const adapter = platformAdapterForSession(session);
+  const { identity } = adapter;
+  const debugAction = adapter.debugAction?.(session.pageUrl);
   const noData = session.loaders.length === 0 && session.networkObservations.length === 0;
   return (
     <div className="space-y-4">
@@ -43,84 +44,48 @@ export function OverviewTab({
           </div>
         </Notice>
       )}
-      <CardHeader session={session} />
+      <CardHeader
+        session={session}
+        platformName={identity.productName}
+        pageContextLabel={identity.pageContextLabel}
+      />
       {noData && (
         <EmptyState
-          title="No Oracle Infinity activity observed yet"
-          detail="The panel may have opened after page load, consent may be pending, or this page may not use Oracle Infinity. Reload with DevTools open before drawing a conclusion."
+          title={`No ${identity.productName} activity observed yet`}
+          detail={`The panel may have opened after page load, consent may be pending, or this page may not use ${identity.productName}. Reload with DevTools open before drawing a conclusion.`}
         />
       )}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-8">
-        <StatusSummaryCard
-          label="CX Tag"
-          value={
-            <Badge tone={summary.tagStatus === 'detected' ? 'success' : 'neutral'}>
-              {summary.tagStatus}
-            </Badge>
-          }
-          note={`${summary.loaderCount} DOM loader(s)`}
-        />
-        <StatusSummaryCard
-          label="Observed calls"
-          value={summary.collectionEventCount}
-          note={`${summary.cxTagEventCount} CX Tag · ${summary.dcApiEventCount} browser-visible DC API`}
-        />
-        <StatusSummaryCard
-          label="Libraries"
-          value={summary.libraryCount}
-          note={
-            summary.libraryIssueCount
-              ? `${summary.libraryIssueCount} load issue(s)`
-              : 'Loaded or cache-validated'
-          }
-        />
-        <StatusSummaryCard
-          label="Support traffic"
-          value={summary.supportTrafficCount}
-          note="Not counted as events"
-        />
-        <StatusSummaryCard
-          label="Tag managers"
-          value={summary.tagManagerCount}
-          note="Implementation clues"
-        />
-        <StatusSummaryCard
-          label="Standard"
-          value={summary.standardParameterCount}
-          note="Observed parameter rows"
-        />
-        <StatusSummaryCard
-          label="Custom"
-          value={summary.customParameterCount}
-          note="Catalog-safe classification"
-        />
-        <StatusSummaryCard
-          label="Needs review"
-          value={summary.unknownParameterCount}
-          note="No Oracle documentation match"
-        />
-        <StatusSummaryCard
-          label="Warnings"
-          value={summary.warningCount}
-          note={`Confidence: ${summary.confidence}`}
-        />
+        {adapter.overviewCards(summary).map((card) => (
+          <StatusSummaryCard
+            key={card.id}
+            label={card.label}
+            value={card.tone ? <Badge tone={card.tone}>{card.value}</Badge> : card.value}
+            note={card.note}
+          />
+        ))}
       </div>
-      <div className="flex flex-wrap gap-2">
-        <Button
-          onClick={() => void copyOracleDebugUrl(session.pageUrl)}
-          disabled={!session.pageUrl}
-        >
-          Copy URL with _ora.debug=vvvv
-        </Button>
-        <span className="self-center text-xs text-stone-500">
-          Copy only; the page is not reloaded or modified.
-        </span>
-      </div>
+      {debugAction && (
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={() => void navigator.clipboard.writeText(debugAction.url)}>
+            {debugAction.label}
+          </Button>
+          <span className="self-center text-xs text-stone-500">{debugAction.note}</span>
+        </div>
+      )}
     </div>
   );
 }
 
-function CardHeader({ session }: { session: DiagnosticSession }) {
+function CardHeader({
+  session,
+  platformName,
+  pageContextLabel,
+}: {
+  session: DiagnosticSession;
+  platformName: string;
+  pageContextLabel: string;
+}) {
   return (
     <div className="rounded-2xl border border-stone-200 bg-white p-4">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -136,10 +101,10 @@ function CardHeader({ session }: { session: DiagnosticSession }) {
           <p>Attached to Edge tab #{session.tabId} · URL auto-sync enabled</p>
           <p>Scan {new Date(session.scanTimestamp).toLocaleTimeString()}</p>
           <p>
-            window.ORA:{' '}
-            {session.oraGlobalDetected === undefined
+            {pageContextLabel} ({platformName}):{' '}
+            {session.pageContextDetected === undefined
               ? 'not checked'
-              : session.oraGlobalDetected
+              : session.pageContextDetected
                 ? 'observed'
                 : 'not observed'}
           </p>

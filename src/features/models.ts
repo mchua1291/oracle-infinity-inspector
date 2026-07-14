@@ -11,6 +11,9 @@ export type ParserResult<T> =
 export const ConfidenceSchema = z.enum(['direct', 'inferred', 'low']);
 export type Confidence = z.infer<typeof ConfidenceSchema>;
 
+export const PlatformIdSchema = z.string().min(1).max(80);
+export type PlatformId = z.infer<typeof PlatformIdSchema>;
+
 export const ScriptLoadModeSchema = z.enum([
   'synchronous',
   'asynchronous',
@@ -45,18 +48,22 @@ export const ScriptLoadEvidenceSchema = z.object({
 });
 export type ScriptLoadEvidence = z.infer<typeof ScriptLoadEvidenceSchema>;
 
-export const OracleCxTagConfigSchema = z.object({
+export const PlatformLoaderConfigSchema = z.object({
   accountGuid: z.string().optional(),
   tagId: z.string().optional(),
   config: z.string().optional(),
   environmentGuess: z.enum(['test', 'production', 'unknown']),
+  platformConfig: z.record(z.string(), z.string()).optional(),
 });
-export type OracleCxTagConfig = z.infer<typeof OracleCxTagConfigSchema>;
+export type PlatformLoaderConfig = z.infer<typeof PlatformLoaderConfigSchema>;
+export const OracleCxTagConfigSchema = PlatformLoaderConfigSchema;
+export type OracleCxTagConfig = PlatformLoaderConfig;
 
-export const OracleCxTagLoaderSchema = z.object({
+export const PlatformLoaderObservationSchema = z.object({
   id: z.string(),
+  platformId: PlatformIdSchema.optional(),
   sourceUrl: z.string().optional(),
-  config: OracleCxTagConfigSchema,
+  config: PlatformLoaderConfigSchema,
   location: ScriptDomLocationSchema,
   async: z.boolean(),
   defer: z.boolean(),
@@ -68,7 +75,9 @@ export const OracleCxTagLoaderSchema = z.object({
   evidence: z.array(ScriptLoadEvidenceSchema),
   detectedAt: z.string(),
 });
-export type OracleCxTagLoader = z.infer<typeof OracleCxTagLoaderSchema>;
+export type PlatformLoaderObservation = z.infer<typeof PlatformLoaderObservationSchema>;
+export const OracleCxTagLoaderSchema = PlatformLoaderObservationSchema;
+export type OracleCxTagLoader = PlatformLoaderObservation;
 
 export const TagManagerTypeSchema = z.enum(['google-tag-manager', 'tealium-iq', 'adobe-tags']);
 export type TagManagerType = z.infer<typeof TagManagerTypeSchema>;
@@ -96,6 +105,9 @@ export const InfinitySourceTypeSchema = z.enum([
 ]);
 export type InfinitySourceType = z.infer<typeof InfinitySourceTypeSchema>;
 
+export const PlatformSourceTypeSchema = z.string().min(1).max(100);
+export type PlatformSourceType = z.infer<typeof PlatformSourceTypeSchema>;
+
 export const InfinityEventKindSchema = z.enum([
   'loader',
   'library',
@@ -106,6 +118,9 @@ export const InfinityEventKindSchema = z.enum([
   'unknown',
 ]);
 export type InfinityEventKind = z.infer<typeof InfinityEventKindSchema>;
+
+export const PlatformEventKindSchema = z.string().min(1).max(100);
+export type PlatformEventKind = z.infer<typeof PlatformEventKindSchema>;
 
 export const ParameterClassificationSchema = z.enum(['standard', 'custom', 'unknown']);
 export type ParameterClassification = z.infer<typeof ParameterClassificationSchema>;
@@ -137,16 +152,18 @@ export const OracleParameterCatalogEntrySchema = z.object({
   sourceUrl: HttpsDocumentationUrlSchema,
 });
 export type OracleParameterCatalogEntry = z.infer<typeof OracleParameterCatalogEntrySchema>;
+export const ParameterCatalogEntrySchema = OracleParameterCatalogEntrySchema;
+export type ParameterCatalogEntry = OracleParameterCatalogEntry;
 
 export const ObservedParameterSchema = z.object({
   id: z.string(),
   name: z.string(),
   value: z.string().nullable(),
-  sourceType: InfinitySourceTypeSchema,
+  sourceType: PlatformSourceTypeSchema,
   eventTimestamp: z.string(),
   eventId: z.string(),
   eventUrl: z.string().optional(),
-  origin: z.enum(['query-string', 'dcapi-static', 'dcapi-event', 'inferred-dom-page']),
+  origin: z.string().min(1).max(100),
   classification: ParameterClassificationSchema,
   sensitivity: ParameterSensitivitySchema,
   catalogDisplayName: z.string().optional(),
@@ -157,25 +174,31 @@ export const ObservedParameterSchema = z.object({
 });
 export type ObservedParameter = z.infer<typeof ObservedParameterSchema>;
 
-export const OracleNetworkObservationSchema = z.object({
+export const PlatformNetworkObservationSchema = z.object({
   id: z.string(),
+  platformId: PlatformIdSchema.optional(),
   timestamp: z.string(),
   requestUrl: z.string(),
   requestMethod: z.string(),
   statusCode: z.number().int(),
-  sourceType: InfinitySourceTypeSchema,
+  sourceType: PlatformSourceTypeSchema,
   accountGuid: z.string().optional(),
   libraryName: z.string().optional(),
   libraryType: z.enum(['javascript', 'stylesheet', 'other']).optional(),
-  eventKind: InfinityEventKindSchema,
+  eventKind: PlatformEventKindSchema,
   wtDl: z.string().optional(),
   parameterCount: z.number().int().nonnegative(),
   requestBodyParseStatus: ParseStatusSchema,
   responseStatus: z.string(),
   warnings: z.array(z.string()),
   parameters: z.array(ObservedParameterSchema),
+  platformData: z
+    .record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()]))
+    .optional(),
 });
-export type OracleNetworkObservation = z.infer<typeof OracleNetworkObservationSchema>;
+export type PlatformNetworkObservation = z.infer<typeof PlatformNetworkObservationSchema>;
+export const OracleNetworkObservationSchema = PlatformNetworkObservationSchema;
+export type OracleNetworkObservation = PlatformNetworkObservation;
 
 export const ParsedDcsGifEventSchema = z.object({
   eventKind: InfinityEventKindSchema,
@@ -232,6 +255,7 @@ export const DiagnosticSummarySchema = z.object({
   cxTagEventCount: z.number().int().nonnegative(),
   dcApiEventCount: z.number().int().nonnegative(),
   supportTrafficCount: z.number().int().nonnegative(),
+  sourceBreakdown: z.record(z.string(), z.number().int().nonnegative()).optional(),
   standardParameterCount: z.number().int().nonnegative(),
   customParameterCount: z.number().int().nonnegative(),
   unknownParameterCount: z.number().int().nonnegative(),
@@ -243,30 +267,35 @@ export type DiagnosticSummary = z.infer<typeof DiagnosticSummarySchema>;
 
 export const DiagnosticSessionSchema = z.object({
   id: z.string(),
+  platformId: PlatformIdSchema.optional(),
   tabId: z.number().int(),
   pageUrl: z.string(),
   startedAt: z.string(),
   scanTimestamp: z.string(),
   devtoolsOpenedAt: z.string(),
-  loaders: z.array(OracleCxTagLoaderSchema),
+  loaders: z.array(PlatformLoaderObservationSchema),
   tagManagers: z.array(TagManagerObservationSchema),
-  networkObservations: z.array(OracleNetworkObservationSchema),
+  networkObservations: z.array(PlatformNetworkObservationSchema),
   parameters: z.array(ObservedParameterSchema),
   warnings: z.array(DiagnosticWarningSchema),
   timeline: z.array(TimelineEntrySchema),
   captureMayBeIncomplete: z.boolean(),
   droppedObservationCount: z.number().int().nonnegative(),
-  oraGlobalDetected: z.boolean().optional(),
+  pageContextDetected: z.boolean().optional(),
 });
 export type DiagnosticSession = z.infer<typeof DiagnosticSessionSchema>;
 
 export const ExpectedDomainProfileSchema = z.object({
   domain: z.string(),
+  platformId: PlatformIdSchema.optional(),
   environment: z.enum(['test', 'production', 'unknown']),
   accountGuids: z.array(z.string()),
   tagId: z.string().optional(),
   config: z.string().optional(),
   loadMode: ScriptLoadModeSchema.optional(),
+  platformConfig: z
+    .record(z.string(), z.union([z.string(), z.array(z.string()), z.boolean()]))
+    .optional(),
 });
 export type ExpectedDomainProfile = z.infer<typeof ExpectedDomainProfileSchema>;
 
@@ -283,8 +312,8 @@ export const ExportedQaEventSchema = z.object({
   id: z.string(),
   sequence: z.number().int().positive(),
   timestamp: z.string(),
-  eventKind: InfinityEventKindSchema,
-  sourceType: InfinitySourceTypeSchema,
+  eventKind: PlatformEventKindSchema,
+  sourceType: PlatformSourceTypeSchema,
   request: z.object({
     url: z.string(),
     method: z.string(),
@@ -325,6 +354,8 @@ export const InfinityLibrarySummarySchema = z.object({
   issues: z.array(z.string()),
 });
 export type InfinityLibrarySummary = z.infer<typeof InfinityLibrarySummarySchema>;
+export const PlatformLibrarySummarySchema = InfinityLibrarySummarySchema;
+export type PlatformLibrarySummary = InfinityLibrarySummary;
 
 export const InfinitySupportTrafficSummarySchema = z.object({
   url: z.string(),
@@ -337,9 +368,18 @@ export const InfinitySupportTrafficSummarySchema = z.object({
   issues: z.array(z.string()),
 });
 export type InfinitySupportTrafficSummary = z.infer<typeof InfinitySupportTrafficSummarySchema>;
+export const PlatformSupportTrafficSummarySchema = InfinitySupportTrafficSummarySchema;
+export type PlatformSupportTrafficSummary = InfinitySupportTrafficSummary;
 
 export const ExportedDiagnosticReportSchema = z.object({
-  reportType: z.literal('oracle-infinity-qa-report'),
+  schemaVersion: z.number().int().positive(),
+  reportType: z.string().min(1),
+  platform: z.object({
+    id: PlatformIdSchema,
+    family: z.string(),
+    productName: z.string(),
+    generation: z.string(),
+  }),
   generatedAt: z.string(),
   extensionVersion: z.string(),
   catalogVersion: z.string(),
@@ -350,7 +390,7 @@ export const ExportedDiagnosticReportSchema = z.object({
     captureMayBeIncomplete: z.boolean(),
   }),
   summary: DiagnosticSummarySchema,
-  loaders: z.array(OracleCxTagLoaderSchema),
+  loaders: z.array(PlatformLoaderObservationSchema),
   tagManagers: z.array(TagManagerObservationSchema),
   libraries: z.array(InfinityLibrarySummarySchema),
   supportTraffic: z.array(InfinitySupportTrafficSummarySchema),

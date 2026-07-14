@@ -14,6 +14,7 @@ The extension is distributed as source code and loaded as an unpacked extension.
 - Highlights empty strings, explicit nulls, raw email addresses, and other QA concerns.
 - Validates documented Oracle commerce events and value formats.
 - Exports complete local QA reports as JSON or Markdown.
+- Routes product-specific detection, validation, terminology, and export metadata through a typed platform adapter designed for future Oracle analytics generations.
 
 The extension never calls Oracle tracking functions, changes page requests, uploads captured data, or sends telemetry.
 
@@ -94,6 +95,7 @@ Generated output is written to `dist` and is intentionally not committed. After 
 - [Oracle Infinity detection rules](docs/ORACLE_INFINITY_DETECTION.md)
 - [Privacy and security](docs/PRIVACY_AND_SECURITY.md)
 - [Architecture](docs/ARCHITECTURE.md)
+- [Platform adapter architecture](docs/PLATFORM_ADAPTERS.md)
 - [Known limitations](docs/LIMITATIONS.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security policy](SECURITY.md)

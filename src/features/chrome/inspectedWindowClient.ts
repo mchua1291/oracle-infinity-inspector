@@ -1,8 +1,7 @@
-export function detectOraGlobal(): Promise<boolean | undefined> {
+export function detectInspectedExpression(expression: string): Promise<boolean | undefined> {
   return new Promise((resolve) => {
-    chrome.devtools.inspectedWindow.eval(
-      "typeof window.ORA !== 'undefined'",
-      (result, exceptionInfo) => resolve(exceptionInfo?.isException ? undefined : result === true),
+    chrome.devtools.inspectedWindow.eval(expression, (result, exceptionInfo) =>
+      resolve(exceptionInfo?.isException ? undefined : result === true),
     );
   });
 }
@@ -17,10 +16,4 @@ export function getInspectedPageUrl(): Promise<string | undefined> {
 
 export function reloadInspectedWindow(): void {
   chrome.devtools.inspectedWindow.reload({ ignoreCache: false });
-}
-
-export async function copyOracleDebugUrl(pageUrl: string): Promise<void> {
-  const url = new URL(pageUrl);
-  url.searchParams.set('_ora.debug', 'vvvv');
-  await navigator.clipboard.writeText(url.toString());
 }

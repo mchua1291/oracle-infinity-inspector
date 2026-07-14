@@ -8,6 +8,14 @@ export interface SensitiveScanResult {
 const emailPattern = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i;
 const phonePattern = /(?:^|\s)(?:\+?\d[\d .()-]{7,}\d)(?:$|\s)/;
 const tokenPattern = /(?:^|[^a-z0-9])(?:[a-z0-9_-]{28,}|[a-f0-9]{32,})(?:$|[^a-z0-9])/i;
+const earliestSupportedDcsdat = Date.UTC(2000, 0, 1);
+const latestSupportedDcsdat = Date.UTC(2100, 0, 1);
+
+export function isExpectedDcsdatTimestamp(value: string): boolean {
+  if (!/^\d{13}$/.test(value)) return false;
+  const timestamp = Number(value);
+  return timestamp >= earliestSupportedDcsdat && timestamp < latestSupportedDcsdat;
+}
 
 function nameIndicatesIdentifier(name: string): boolean {
   return (
@@ -41,6 +49,9 @@ export function scanSensitiveValue(name: string, value: string | null): Sensitiv
       sensitivity: 'email',
       reasons: ['Value resembles a raw email address.'],
     };
+  }
+  if (name.toLowerCase() === 'dcsdat' && isExpectedDcsdatTimestamp(value)) {
+    return { sensitivity: 'none', reasons: [] };
   }
   const digits = value.replace(/[^0-9]/g, '');
   if (passesLuhn(digits)) {

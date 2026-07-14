@@ -1,7 +1,7 @@
 import type {
   DiagnosticSummary,
-  OracleCxTagLoader,
-  OracleNetworkObservation,
+  PlatformLoaderObservation,
+  PlatformNetworkObservation,
   TagManagerObservation,
   TimelineEntry,
 } from '../models';
@@ -11,7 +11,7 @@ export type ExtensionMessage =
       type: 'DOM_SCAN';
       tabId?: number;
       pageUrl: string;
-      loaders: OracleCxTagLoader[];
+      loaders: PlatformLoaderObservation[];
       tagManagers: TagManagerObservation[];
       scannedAt: string;
     }
@@ -19,7 +19,7 @@ export type ExtensionMessage =
   | { type: 'REQUEST_DOM_SCAN'; tabId: number; monitorMutations: boolean }
   | { type: 'ACTIVATE_DOM_INSPECTION'; monitorMutations: boolean }
   | { type: 'GET_TAB_SESSION'; tabId: number }
-  | { type: 'NETWORK_OBSERVATIONS'; tabId: number; observations: OracleNetworkObservation[] }
+  | { type: 'NETWORK_OBSERVATIONS'; tabId: number; observations: PlatformNetworkObservation[] }
   | { type: 'CLEAR_SESSION'; tabId: number; pageUrl?: string }
   | { type: 'GET_TAB_SUMMARY'; tabId: number }
   | { type: 'GET_ACTIVE_TAB_ID' }
@@ -34,9 +34,9 @@ export type ExtensionMessage =
 export interface BackgroundTabSession {
   schemaVersion: 1;
   pageUrl: string;
-  loaders: OracleCxTagLoader[];
+  loaders: PlatformLoaderObservation[];
   tagManagers: TagManagerObservation[];
-  observations: OracleNetworkObservation[];
+  observations: PlatformNetworkObservation[];
   scannedAt: string;
   timeline: TimelineEntry[];
   droppedObservationCount: number;
@@ -45,4 +45,5 @@ export interface BackgroundTabSession {
 export interface PopupSummaryResponse {
   summary?: DiagnosticSummary;
   pageUrl?: string;
+  platformId?: string;
 }

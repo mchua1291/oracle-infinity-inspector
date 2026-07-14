@@ -69,6 +69,8 @@ High-severity findings include malformed requests and raw sensitive values such 
 
 Exports contain raw values, request URLs, and identifiers. Download and copy actions remain disabled until you acknowledge the raw client-data notice. Review the file before sharing it, use an approved storage location, and follow the client's retention requirements.
 
+JSON reports include a schema version and platform adapter identity. Integrations should check `schemaVersion`, `platform.id`, and `reportType` before interpreting platform-specific details.
+
 ### Settings
 
 Settings are stored locally in extension storage.

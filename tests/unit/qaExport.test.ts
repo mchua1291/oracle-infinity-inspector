@@ -1,5 +1,6 @@
 import { createExportReport } from '../../src/features/export/exportJson';
 import { exportReportMarkdown } from '../../src/features/export/exportMarkdown';
+import { ExportedDiagnosticReportSchema } from '../../src/features/models';
 import { networkFixture, sessionFixture } from '../helpers';
 
 describe('QA report export', () => {
@@ -49,6 +50,14 @@ describe('QA report export', () => {
       sessionFixture({ networkObservations: [event], parameters, warnings: [qaFinding] }),
     );
 
+    expect(report.schemaVersion).toBe(2);
+    expect(report.platform).toEqual({
+      id: 'oracle-infinity',
+      family: 'Oracle Digital Experience Analytics',
+      productName: 'Oracle Infinity',
+      generation: 'Infinity / UBI',
+    });
+    expect(ExportedDiagnosticReportSchema.safeParse(report).success).toBe(true);
     expect(report.events[0].request.url).toContain('wt.ti=Full%20title');
     expect(report.events[0].request.accountGuid).toBe('example-account-guid');
     expect(report.events[0].payload.outOfTheBox[0].value).toBe('Full title');

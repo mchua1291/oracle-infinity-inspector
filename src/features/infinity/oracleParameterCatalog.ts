@@ -1,5 +1,8 @@
 import type { OracleParameterCatalogEntry, ParameterSensitivity } from '../models';
 import { FULL_REFERENCE_PARAMETER_ENTRIES } from './oracleParameterCatalog.generated';
+import { COMMERCE_GUIDE_URL } from './infinityDocumentation';
+
+export { COMMERCE_GUIDE_URL } from './infinityDocumentation';
 
 const fullReference =
   'https://docs.oracle.com/en/cloud/saas/marketing/infinity-develop/docs/parameters/reference.htm';
@@ -15,9 +18,6 @@ const mobileClientReference =
   'https://docs.oracle.com/en/cloud/saas/marketing/infinity-develop/docs/data_collection/mobile_client_plugin.htm';
 const linkTrackingReference =
   'https://docs.oracle.com/en/cloud/saas/marketing/infinity-develop/docs/data_collection/link_tracking_plugin_ref.htm';
-export const COMMERCE_GUIDE_URL =
-  'https://docs.oracle.com/en/cloud/saas/marketing/infinity-quickstart/Data-Collection/Parameter-Reference/Commerce/';
-
 const supplementalSystemNames = [
   'wt.vtvs',
   'wt.vt_tlv',

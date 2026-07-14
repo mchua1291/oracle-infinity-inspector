@@ -56,6 +56,21 @@ describe('parameter classification', () => {
     });
     expect(parameter.sensitivity).toBe('identifier');
   });
+  it('keeps a generated dcsdat timestamp non-sensitive after classification', () => {
+    const parameter = createObservedParameter({
+      name: 'dcsdat',
+      value: '1783982327833',
+      sourceType: 'cx-tag-network',
+      eventTimestamp: '2026-07-13T22:38:47.833Z',
+      eventId: 'event',
+      origin: 'query-string',
+    });
+    expect(parameter).toMatchObject({
+      classification: 'standard',
+      sensitivity: 'none',
+      catalogDisplayName: 'Tag-generated timestamp',
+    });
+  });
   it('bundles the full reference plus documented supplemental system names', () =>
     expect(ORACLE_PARAMETER_CATALOG.entries.length).toBeGreaterThanOrEqual(246));
 });

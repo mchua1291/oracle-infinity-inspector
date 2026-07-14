@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { buildSummary } from '../features/diagnostics/diagnosticEngine';
+import { buildPlatformSummary } from '../features/platform/platformDiagnosticsRuntime';
+import { platformAdapterForSession } from '../features/platform/platformRegistry';
 import { useDiagnosticsStore } from '../store/diagnosticsStore';
 import { ExportTab } from './export/ExportTab';
 import { DevtoolsShell } from './layout/DevtoolsShell';
@@ -15,7 +16,8 @@ import { WarningsTab } from './warnings/WarningsTab';
 export function App() {
   const { ready, session, settings, inspectedTabActive, error } = useDiagnosticsStore();
   const [active, setActive] = useState<TabName>('Overview');
-  const summary = buildSummary(session);
+  const summary = buildPlatformSummary(session);
+  const platform = platformAdapterForSession(session).identity;
   if (!ready)
     return (
       <div className="grid min-h-screen place-items-center bg-canvas text-sm text-stone-600">
@@ -42,7 +44,7 @@ export function App() {
     ) : active === 'Export' ? (
       <ExportTab session={session} />
     ) : (
-      <SettingsTab settings={settings} pageUrl={session.pageUrl} />
+      <SettingsTab settings={settings} pageUrl={session.pageUrl} platformId={platform.id} />
     );
   return (
     <DevtoolsShell
@@ -50,6 +52,7 @@ export function App() {
       nav={<TabNav active={active} onChange={setActive} />}
       inspectedTabActive={inspectedTabActive}
       tabId={session.tabId}
+      platform={platform}
     >
       {content}
     </DevtoolsShell>

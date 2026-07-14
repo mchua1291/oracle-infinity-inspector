@@ -69,6 +69,25 @@ describe('diagnostic engine', () => {
     ).toBe(true);
   });
 
+  it('reports malformed dcsdat values as a format issue', () => {
+    const parameter = {
+      id: 'dcsdat',
+      name: 'dcsdat',
+      value: 'not-a-timestamp',
+      sourceType: 'cx-tag-network' as const,
+      eventTimestamp: '2026-01-01T00:00:01.000Z',
+      eventId: 'event-1',
+      origin: 'query-string' as const,
+      classification: 'standard' as const,
+      sensitivity: 'none' as const,
+    };
+    expect(
+      buildDiagnostics(sessionFixture({ parameters: [parameter] })).some(
+        (item) => item.code === 'invalid-dcsdat-format',
+      ),
+    ).toBe(true);
+  });
+
   it('does not count cache-validated libraries as collection calls or failures', () => {
     const library = networkFixture({
       id: 'library',

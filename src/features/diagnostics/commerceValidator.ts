@@ -4,7 +4,7 @@ import type {
   ObservedParameter,
   OracleNetworkObservation,
 } from '../models';
-import { COMMERCE_GUIDE_URL } from '../infinity/oracleParameterCatalog';
+import { COMMERCE_GUIDE_URL } from '../infinity/infinityDocumentation';
 
 export interface CommerceEventDefinition {
   eventValue: string;

@@ -12,7 +12,7 @@ export class AppErrorBoundary extends Component<{ children: ReactNode }, State> 
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error('Oracle Infinity Inspector panel crashed.', error, info);
+    console.error('Implementation Inspector panel crashed.', error, info);
   }
 
   render() {

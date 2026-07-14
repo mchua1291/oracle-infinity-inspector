@@ -2,18 +2,20 @@ import { useMemo, useState } from 'react';
 import type { DiagnosticSession } from '../../features/models';
 import { createExportReport, exportReportJson } from '../../features/export/exportJson';
 import { exportReportMarkdown } from '../../features/export/exportMarkdown';
+import { platformAdapterForSession } from '../../features/platform/platformRegistry';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { Notice } from '../ui/Notice';
 
 export function ExportTab({ session }: { session: DiagnosticSession }) {
+  const adapter = platformAdapterForSession(session);
   const [copied, setCopied] = useState(false);
   const [clientDataAcknowledged, setClientDataAcknowledged] = useState(false);
-  const version = typeof chrome !== 'undefined' ? chrome.runtime.getManifest().version : '0.1.0';
+  const version = typeof chrome !== 'undefined' ? chrome.runtime.getManifest().version : '0.3.0';
   const report = useMemo(() => createExportReport(session, version), [session, version]);
   const markdown = useMemo(() => exportReportMarkdown(session, version), [session, version]);
-  const baseName = reportFileName(session.pageUrl);
+  const baseName = reportFileName(session.pageUrl, report.platform.id);
   const parameterCount = report.events.reduce(
     (count, event) => count + event.payload.parameterCount,
     0,
@@ -105,7 +107,8 @@ export function ExportTab({ session }: { session: DiagnosticSession }) {
         </div>
         <Notice>
           Empty strings and explicit nulls remain in the report and are highlighted as potential QA
-          issues. Browser-visible traffic only; backend DC API calls cannot be captured here.
+          issues. Browser-visible traffic only; backend {adapter.identity.shortName} calls cannot be
+          captured here.
         </Notice>
         <pre className="mt-4 max-h-[72vh] overflow-auto whitespace-pre-wrap break-words rounded-xl bg-ink p-4 text-xs leading-6 text-stone-100">
           {markdown}
@@ -132,7 +135,7 @@ function Metric({
   );
 }
 
-function reportFileName(pageUrl: string): string {
+function reportFileName(pageUrl: string, platformId: string): string {
   let host = 'inspected-page';
   try {
     host = new URL(pageUrl).hostname || host;
@@ -140,7 +143,7 @@ function reportFileName(pageUrl: string): string {
     // Keep the stable fallback for pages without an HTTP(S) URL.
   }
   const date = new Date().toISOString().slice(0, 10);
-  return `oracle-infinity-qa-${host.replace(/[^a-z0-9.-]+/gi, '-')}-${date}`;
+  return `${platformId}-qa-${host.replace(/[^a-z0-9.-]+/gi, '-')}-${date}`;
 }
 
 function download(name: string, content: string, type: string) {

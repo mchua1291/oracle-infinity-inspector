@@ -18,15 +18,21 @@ The panel and popup use a locally implemented, Redwood-inspired token layer: Ora
 
 ```text
 active DevTools panel -> activate dormant content scanner
-Inspected DOM -> CX loader/tag-manager scanners -> service worker session cache -> DevTools panel store
-Inspected network -> collection/library classifiers -> deterministic parsers -> panel store
-panel store -> classifier -> diagnostic engine -> tabs/export
+Inspected DOM -> platform adapter loader scanners + tag-manager scanners -> service worker session cache -> DevTools panel store
+Inspected network -> adapter registry -> product parser/classifiers -> panel store
+panel store -> active platform adapter -> diagnostics/summaries -> tabs/export
 panel store -> service worker in-memory summary -> toolbar popup
 settings -> chrome.storage.local
 explicit export -> local Blob download or clipboard
 ```
 
 No backend is used because all required evidence is already available locally in the inspected browser. Avoiding a backend also prevents diagnostic payloads, account identifiers, URLs, or parameter values from leaving the machine.
+
+## Platform adapter layer
+
+Browser and React runtime surfaces do not select Infinity parsers, scanners, diagnostics, catalogs, profile fields, or terminology directly. They resolve a typed adapter through the validated platform registry. Observations and sessions carry the stable adapter ID, and explicit unknown IDs fail instead of falling back to Infinity.
+
+The current `oracle-infinity` adapter wraps the existing Infinity behavior. A future adapter can add request matchers, payload parsers, loader evidence, catalogs, expected-profile fields, diagnostics, UI labels, and export notes without replacing the DevTools, storage, UI shell, or report-delivery infrastructure. Lightweight identity, DOM, and diagnostics registries keep the popup, content script, and service worker from importing the full panel/catalog bundle. See [Platform adapters](PLATFORM_ADAPTERS.md).
 
 ## Parser and classifier layer
 
@@ -41,6 +47,7 @@ The parser layer is independent from React and Chrome APIs:
 - The parameter classifier uses a versioned static catalog generated from Oracle's Full Parameter Reference, curated official-document supplements (including commerce parameters), and optional locally imported entries. Documentation matches are out-of-the-box, conventional undocumented names are custom, and unmatched reserved namespaces remain needs-review.
 - The sensitive-value scanner detects email-, phone-, payment-card-, identifier-, and token-like values without transmitting them.
 - Documented or name-identified identifiers override only the generic token-shape heuristic; raw email, payment-card, and phone detection retain priority.
+- Adapter-specific observations are normalized into extensible platform-neutral loader, network, parameter, and session models before reaching the UI.
 
 ## Diagnostic engine
 

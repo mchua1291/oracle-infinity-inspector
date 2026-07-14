@@ -1,9 +1,13 @@
 import type { BackgroundTabSession, ExtensionMessage } from '../features/chrome/chromeMessageTypes';
-import { buildSummary, withDiagnostics } from '../features/diagnostics/diagnosticEngine';
 import type { DiagnosticSession } from '../features/models';
 import { mergeObservations } from '../features/network/observationCollection';
+import {
+  buildPlatformSummary,
+  withPlatformDiagnostics,
+} from '../features/platform/platformDiagnosticsRuntime';
+import { getPlatformIdentity } from '../features/platform/platformIdentityRegistry';
 
-const SESSION_KEY_PREFIX = 'oracleInfinityInspector.tabSession.';
+const SESSION_KEY_PREFIX = 'oracleImplementationInspector.tabSession.';
 const MAX_BACKGROUND_TIMELINE = 500;
 const sessions = new Map<number, BackgroundTabSession>();
 const loadedTabs = new Set<number>();
@@ -122,7 +126,7 @@ function diagnosticSession(tabId: number, source: BackgroundTabSession): Diagnos
     captureMayBeIncomplete: true,
     droppedObservationCount: source.droppedObservationCount,
   };
-  return withDiagnostics(session);
+  return withPlatformDiagnostics(session);
 }
 
 async function handleMessage(
@@ -167,12 +171,14 @@ async function handleMessage(
   if (message.type === 'GET_TAB_SESSION') return getSession(message.tabId);
   if (message.type === 'GET_TAB_SUMMARY') {
     const current = await getSession(message.tabId);
-    return current.observations.length || current.loaders.length || current.tagManagers.length
-      ? {
-          pageUrl: current.pageUrl,
-          summary: buildSummary(diagnosticSession(message.tabId, current)),
-        }
-      : {};
+    if (!current.observations.length && !current.loaders.length && !current.tagManagers.length)
+      return {};
+    const session = diagnosticSession(message.tabId, current);
+    return {
+      pageUrl: current.pageUrl,
+      platformId: getPlatformIdentity(session.platformId).id,
+      summary: buildPlatformSummary(session),
+    };
   }
   if (message.type === 'GET_ACTIVE_TAB_ID') {
     const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
