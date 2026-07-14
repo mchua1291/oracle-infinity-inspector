@@ -783,10 +783,12 @@ function RunScorecard({
           Clear QA run
         </Button>
       </div>
-      <Notice>
-        Start a step immediately before the approved interaction or consent action. Complete it
-        after collection traffic settles. Starting a new step is disabled while another is active.
-      </Notice>
+      <div className="mt-4">
+        <Notice>
+          Start a step immediately before the approved interaction or consent action. Complete it
+          after collection traffic settles. Starting a new step is disabled while another is active.
+        </Notice>
+      </div>
       <div className="mt-4 space-y-3">
         {run.steps.map((stepRun, index) => {
           const active = run.activeStepId === stepRun.step.id;

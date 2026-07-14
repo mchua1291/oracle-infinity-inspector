@@ -58,7 +58,7 @@ function createQaEvent(
 
 export function createExportReport(
   session: DiagnosticSession,
-  extensionVersion = '0.5.0',
+  extensionVersion = '0.5.1',
   qaRun?: QaPlanRun,
 ): ExportedDiagnosticReport {
   const adapter = platformAdapterForSession(session);
