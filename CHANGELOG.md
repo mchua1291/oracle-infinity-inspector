@@ -2,7 +2,7 @@
 
 All notable changes to Oracle Infinity Inspector are documented here.
 
-## 0.4.0 - Unreleased
+## 0.4.0 - 2026-07-14
 
 ### Added
 
