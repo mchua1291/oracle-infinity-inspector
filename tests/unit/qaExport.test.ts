@@ -143,8 +143,8 @@ describe('QA report export', () => {
     );
     const currentSession = sessionFixture({ networkObservations: [] });
 
-    const report = createExportReport(currentSession, '0.4.0', runCompleted);
-    const markdown = exportReportMarkdown(currentSession, '0.4.0', runCompleted);
+    const report = createExportReport(currentSession, '0.5.0', runCompleted);
+    const markdown = exportReportMarkdown(currentSession, '0.5.0', runCompleted);
 
     expect(report.qaScorecard).toMatchObject({
       planName: 'Checkout QA',

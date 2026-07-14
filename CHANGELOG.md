@@ -4,12 +4,14 @@ All notable changes to Oracle Infinity Inspector are documented here.
 
 ## Unreleased
 
+## 0.5.0 - 2026-07-14
+
 ### Added
 
 - Reusable local QA plans with ordered scenario steps, explicit capture windows, event matchers, count limits, required/optional/forbidden parameter rules, non-empty validation, and optional value patterns.
 - Client-configurable consent checkpoints for before-choice, rejected, accepted, and withdrawn states, with blocked/allowed/required expectations for collection calls, loader evidence, and identifier parameters.
 - Per-tab pass/warn/fail scorecards that survive navigation and service-worker suspension, retain completed-step event evidence, and appear in JSON and Markdown exports.
-- Focused contract, consent, export, settings-migration, persistence, and QA-plan component coverage.
+- Focused contract, consent, export, settings-migration, persistence, QA-plan component, and complete multi-step acceptance coverage.
 
 ### Changed
 

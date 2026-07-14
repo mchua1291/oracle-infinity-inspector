@@ -49,6 +49,17 @@ Absence from the inspector is not proof of absence until capture timing and visi
 
 Clear the session and reload once with DevTools open. If identical events still repeat, compare timestamps, request URLs, and payloads with Edge's Network panel. Some implementations legitimately fire duplicates; exact capture duplicates should be reported with sanitized evidence.
 
+## A QA Plan step captured no event or the wrong event
+
+- Select **Start capture** immediately before the one approved interaction. Complete the step only after its network traffic settles.
+- Only one QA Plan step can capture at a time. Complete or cancel the active step before starting another.
+- Confirm DevTools is still attached to the intended tab. A DevTools window cannot follow you to a different browser tab.
+- If the interaction navigates within the inspected tab, wait for the destination page to settle before completing the step. The active run survives that navigation.
+- Compare the configured `wt.ev`, `wt.dl`, event kind, source, and count rules with the captured Network Events evidence. Matcher values are exact.
+- Use **Run again** after correcting timing or contract configuration; the rerun replaces that step's earlier evidence in the current scorecard.
+
+A failed consent checkpoint means the browser-visible evidence did not match the configured client expectation. It does not inspect the consent manager's internal record or establish legal compliance.
+
 ## The extension did not update after rebuilding
 
 After `npm run build`:
