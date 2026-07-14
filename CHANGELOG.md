@@ -19,6 +19,10 @@ All notable changes to Oracle Infinity Inspector are documented here.
 - JSON QA exports use schema version 2 and include explicit platform identity and generation metadata.
 - Settings migrate transparently from the original Infinity-specific storage key to a product-neutral key.
 
+### Fixed
+
+- Valid tag-generated `dcsdat` timestamps no longer trigger phone-number or payment-card privacy warnings; malformed values receive a format-specific QA warning.
+
 ## 0.2.0 - 2026-07-13
 
 ### Added

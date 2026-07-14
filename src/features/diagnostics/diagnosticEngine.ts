@@ -7,6 +7,7 @@ import type {
 import { buildCommerceDiagnostics } from './commerceValidator';
 import { detectDuplicatePageViews } from './duplicateEventDetector';
 import { summarizeInfinityLibraries } from '../infinity/librarySummary';
+import { isExpectedDcsdatTimestamp } from '../infinity/sensitiveValueScanner';
 import { isCollectionObservation, isSupportObservation } from '../network/observationCollection';
 
 function warning(
@@ -357,6 +358,22 @@ export function buildDiagnostics(
           'Empty parameter value observed',
           `${parameter.name} was collected with ${parameter.value === null ? 'a null value' : 'an empty string'}.`,
           'Confirm whether this parameter is required and whether the tag should omit it or populate an expected value.',
+          [parameter.id],
+        ),
+      );
+    if (
+      parameter.name.toLowerCase() === 'dcsdat' &&
+      parameter.value !== '' &&
+      parameter.value !== null &&
+      !isExpectedDcsdatTimestamp(parameter.value)
+    )
+      warnings.push(
+        warning(
+          'invalid-dcsdat-format',
+          'low',
+          'Unexpected dcsdat format',
+          'dcsdat does not contain the expected tag-generated millisecond timestamp.',
+          'Confirm that the Infinity Tag generates dcsdat and that the system parameter has not been repurposed.',
           [parameter.id],
         ),
       );
