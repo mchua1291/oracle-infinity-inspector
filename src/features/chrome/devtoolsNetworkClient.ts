@@ -1,10 +1,13 @@
 import type { ParameterCatalogEntry, PlatformNetworkObservation } from '../models';
+import type { DiscoveryTechnologyEvidence } from '../discovery/discoveryModels';
+import { inspectNetworkForDiscovery } from '../discovery/discoveryRegistry';
 import type { HarEntry, HarLog } from '../network/harTypes';
 import { parseRequestWithPlatformAdapters } from '../platform/platformRuntime';
 import { runExtensionOperation } from './extensionLifecycle';
 
 export interface NetworkClientHandlers {
   onObservations: (entries: PlatformNetworkObservation[]) => void;
+  onDiscoveryEvidence?: (evidence: DiscoveryTechnologyEvidence[]) => void;
   onNavigated: (url: string) => void | Promise<void>;
 }
 
@@ -27,8 +30,11 @@ export function startDevtoolsNetworkClient(
     if (fresh.length) handlers.onObservations(fresh);
   };
   const finished = (request: chrome.devtools.network.Request) => {
-    const observations = parseEntry(request as unknown as HarEntry, importedCatalog);
+    const entry = request as unknown as HarEntry;
+    const observations = parseEntry(entry, importedCatalog);
     emitNew(observations);
+    const discoveryEvidence = inspectNetworkForDiscovery(entry);
+    if (discoveryEvidence.length) handlers.onDiscoveryEvidence?.(discoveryEvidence);
   };
   const navigated = (url: string) => runExtensionOperation(() => handlers.onNavigated(url));
   chrome.devtools.network.onRequestFinished.addListener(finished);
@@ -38,6 +44,8 @@ export function startDevtoolsNetworkClient(
     const entries = Array.isArray(log?.entries) ? log.entries : [];
     const observations = entries.flatMap((entry) => parseEntry(entry, importedCatalog));
     emitNew(observations);
+    const discoveryEvidence = entries.flatMap(inspectNetworkForDiscovery);
+    if (discoveryEvidence.length) handlers.onDiscoveryEvidence?.(discoveryEvidence);
   });
   return () => {
     chrome.devtools.network.onRequestFinished.removeListener(finished);

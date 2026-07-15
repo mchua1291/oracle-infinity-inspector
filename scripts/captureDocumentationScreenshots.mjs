@@ -28,6 +28,19 @@ function parameter(eventId, index, name, value, classification, options = {}) {
   };
 }
 
+function discoveredField(path, value, options = {}) {
+  const state =
+    options.state ?? (value === null ? 'null' : value === '' ? 'empty-string' : 'populated');
+  return {
+    path,
+    value,
+    valueType: options.valueType ?? (value === null ? 'null' : typeof value),
+    state,
+    entryIndex: options.entryIndex,
+    truncated: false,
+  };
+}
+
 const viewParameters = [
   parameter('event-view', 0, 'dcsdat', '1783982327833', 'standard', {
     displayName: 'Tag-generated timestamp',
@@ -90,7 +103,7 @@ const session = {
       inlineLoaderEvidence: false,
       parserInsertedInference: false,
       loadMode: 'asynchronous',
-      confidence: 'observed',
+      confidence: 'direct',
       evidence: [{ kind: 'async-attribute', description: 'Script uses async.', direct: true }],
       detectedAt: capturedAt,
     },
@@ -103,7 +116,7 @@ const session = {
       containerId: 'GTM-DEMO123',
       sourceUrl: 'https://www.googletagmanager.com/gtm.js?id=GTM-DEMO123',
       location: { path: 'html > head > script:nth-of-type(1)', parentElement: 'head' },
-      confidence: 'observed',
+      confidence: 'direct',
       evidence: 'Google Tag Manager script URL and container identifier observed.',
       detectedAt: capturedAt,
     },
@@ -307,6 +320,119 @@ session.qaRun = {
   ],
 };
 
+const discoveryTechnologies = [
+  {
+    providerId: 'google',
+    technologyKind: 'analytics',
+    label: 'Google Analytics',
+    identifier: 'G-DEMO123',
+    evidence: 'The gtag page-context function and a GA4 measurement identifier are present.',
+  },
+  {
+    providerId: 'google',
+    technologyKind: 'data-layer',
+    label: 'Google dataLayer',
+    identifier: 'dataLayer',
+    evidence: 'The dataLayer page-context object is present.',
+  },
+  {
+    providerId: 'adobe',
+    technologyKind: 'tag-manager',
+    label: 'Adobe Experience Platform Tags',
+    identifier: 'launch-ENDEMO-development.min.js',
+    evidence: 'The _satellite page-context object is present.',
+  },
+  {
+    providerId: 'adobe',
+    technologyKind: 'analytics',
+    label: 'Adobe Analytics (AppMeasurement)',
+    identifier: 'demo-report-suite',
+    evidence: 'The s_gi AppMeasurement factory is present.',
+  },
+  {
+    providerId: 'adobe',
+    technologyKind: 'data-layer',
+    label: 'Adobe Client Data Layer',
+    identifier: 'adobeDataLayer',
+    evidence: 'The adobeDataLayer page-context object is present.',
+  },
+  {
+    providerId: 'tealium',
+    technologyKind: 'tag-manager',
+    label: 'Tealium iQ',
+    identifier: 'demo/main',
+    evidence: 'The utag page-context object is present.',
+  },
+  {
+    providerId: 'tealium',
+    technologyKind: 'data-layer',
+    label: 'Tealium Universal Data Object',
+    identifier: 'utag_data',
+    evidence: 'The utag_data page-context object is present.',
+  },
+];
+
+const discoveryBaseline = {
+  capturedAt: '2026-07-13T22:30:10.000Z',
+  pageUrl,
+  technologies: discoveryTechnologies,
+  layers: [
+    {
+      providerId: 'google',
+      objectName: 'dataLayer',
+      label: 'Google dataLayer',
+      kind: 'queue',
+      totalEntries: 1,
+      truncated: false,
+      fields: [
+        discoveredField('dataLayer[0].event', 'view_item', { entryIndex: 0 }),
+        discoveredField('dataLayer[0].page_name', 'Insulated Bottle', { entryIndex: 0 }),
+        discoveredField('dataLayer[0]["site.section"]', 'products', { entryIndex: 0 }),
+        discoveredField('dataLayer[0].ecommerce.items[0].item_id', 'BOTTLE-24-BLUE', {
+          entryIndex: 0,
+        }),
+        discoveredField('dataLayer[0].campaign', '', { entryIndex: 0 }),
+      ],
+    },
+    {
+      providerId: 'adobe',
+      objectName: 'adobeDataLayer',
+      label: 'Adobe Client Data Layer',
+      kind: 'queue',
+      totalEntries: 1,
+      truncated: false,
+      fields: [
+        discoveredField('adobeDataLayer[0].event', 'productView', { entryIndex: 0 }),
+        discoveredField('adobeDataLayer[0].data.page.name', 'Insulated Bottle', {
+          entryIndex: 0,
+        }),
+        discoveredField('adobeDataLayer[0].data.user.status', 'guest', { entryIndex: 0 }),
+      ],
+    },
+    {
+      providerId: 'tealium',
+      objectName: 'utag_data',
+      label: 'Tealium Universal Data Object',
+      kind: 'object',
+      totalEntries: 1,
+      truncated: false,
+      fields: [
+        discoveredField('utag_data.page_name', 'Insulated Bottle'),
+        discoveredField('utag_data.product_id[0]', 'BOTTLE-24-BLUE'),
+        discoveredField('utag_data.customer_email', 'demo.user@example.test'),
+      ],
+    },
+  ],
+};
+const discoveryComparison = structuredClone(discoveryBaseline);
+discoveryComparison.capturedAt = '2026-07-13T22:30:13.000Z';
+discoveryComparison.layers[0].totalEntries = 2;
+discoveryComparison.layers[0].fields.push(
+  discoveredField('dataLayer[1].event', 'add_to_cart', { entryIndex: 1 }),
+  discoveredField('dataLayer[1]["product.sku"]', 'BOTTLE-24-BLUE', { entryIndex: 1 }),
+  discoveredField('dataLayer[1]["product.quantity"]', '1', { entryIndex: 1 }),
+);
+
 const popupSummary = {
   pageUrl,
   platformId: 'oracle-infinity',
@@ -376,8 +502,9 @@ try {
     colorScheme: 'light',
   });
   await context.addInitScript(
-    ({ sessionData, summaryData, extensionVersion }) => {
+    ({ sessionData, summaryData, extensionVersion, discoveryBefore, discoveryAfter }) => {
       const runtimeListeners = new Set();
+      let discoveryProbeCount = 0;
       const event = { addListener() {}, removeListener() {} };
       Object.assign(globalThis.chrome ?? (globalThis.chrome = {}), {
         runtime: {
@@ -404,8 +531,17 @@ try {
         devtools: {
           inspectedWindow: {
             tabId: 42,
-            eval: (expression, callback) =>
-              callback(expression === 'location.href' ? sessionData.pageUrl : true, undefined),
+            eval: (expression, callback) => {
+              if (expression === 'location.href') {
+                callback(sessionData.pageUrl, undefined);
+                return;
+              }
+              if (expression.includes('__ORACLE_INFINITY_DISCOVERY_PROBE__')) {
+                callback(discoveryProbeCount++ === 0 ? discoveryBefore : discoveryAfter, undefined);
+                return;
+              }
+              callback(true, undefined);
+            },
             reload() {},
           },
           network: {
@@ -420,7 +556,13 @@ try {
         value: { writeText: async () => undefined },
       });
     },
-    { sessionData: session, summaryData: popupSummary, extensionVersion: packageJson.version },
+    {
+      sessionData: session,
+      summaryData: popupSummary,
+      extensionVersion: packageJson.version,
+      discoveryBefore: discoveryBaseline,
+      discoveryAfter: discoveryComparison,
+    },
   );
 
   const popup = await context.newPage();
@@ -438,6 +580,13 @@ try {
   await panel.setViewportSize({ width: 1600, height: 1000 });
   await panel.getByRole('heading', { name: 'Captured events' }).waitFor();
   await panel.screenshot({ path: join(output, 'network-event-details.png'), fullPage: true });
+  await panel.getByRole('button', { name: 'Discovery' }).click();
+  await panel.getByRole('heading', { name: 'Technology and reusable data workspace' }).waitFor();
+  await panel.getByRole('button', { name: 'Capture baseline' }).click();
+  await panel.getByText(/Baseline captured/).waitFor();
+  await panel.getByRole('button', { name: 'Capture comparison' }).click();
+  await panel.getByText(/Comparison captured/).waitFor();
+  await panel.screenshot({ path: join(output, 'discovery.png'), fullPage: true });
   await panel.getByRole('button', { name: 'QA Plan' }).click();
   await panel.getByText('Active scorecard').waitFor();
   await panel.waitForTimeout(250);
@@ -450,7 +599,7 @@ try {
   await panel.screenshot({ path: join(output, 'qa-plan.png'), fullPage: true });
   await context.close();
   console.log(
-    'Captured sanitized popup, overview, network-event, QA-scorecard, and QA-plan documentation screenshots.',
+    'Captured sanitized popup, overview, network-event, Discovery, QA-scorecard, and QA-plan documentation screenshots.',
   );
 } finally {
   await browser.close();

@@ -7,7 +7,7 @@ import {
   startQaPlanRun,
   startQaStep,
 } from '../../src/features/qa/qaContracts';
-import { networkFixture, sessionFixture } from '../helpers';
+import { discoveryStateFixture, networkFixture, sessionFixture } from '../helpers';
 
 describe('QA report export', () => {
   it('preserves raw values, request metadata, classifications, and null findings', () => {
@@ -56,7 +56,7 @@ describe('QA report export', () => {
       sessionFixture({ networkObservations: [event], parameters, warnings: [qaFinding] }),
     );
 
-    expect(report.schemaVersion).toBe(3);
+    expect(report.schemaVersion).toBe(4);
     expect(report.platform).toEqual({
       id: 'oracle-infinity',
       family: 'Oracle Digital Experience Analytics',
@@ -72,6 +72,22 @@ describe('QA report export', () => {
       { parameterId: 'custom', name: 'site.section', valueKind: 'null' },
     ]);
     expect(report.events[0].qaFindings).toEqual([qaFinding]);
+  });
+
+  it('exports technology evidence, discovery snapshots, reuse candidates, and comparisons', () => {
+    const discovery = discoveryStateFixture();
+    const session = sessionFixture();
+    const report = createExportReport(session, '0.6.0', undefined, discovery);
+    const markdown = exportReportMarkdown(session, '0.6.0', undefined, discovery);
+
+    expect(report.discovery).toMatchObject({
+      baselineSnapshotId: 'snapshot-1',
+      technologies: [expect.objectContaining({ label: 'Google Tag Manager' })],
+      reuseAssessments: [expect.objectContaining({ status: 'available-not-collected' })],
+    });
+    expect(ExportedDiagnosticReportSchema.safeParse(report).success).toBe(true);
+    expect(markdown).toContain('## Existing implementation discovery');
+    expect(markdown).toContain('available-not-collected');
   });
 
   it('summarizes Infinity libraries separately from complete collection events', () => {
@@ -143,8 +159,8 @@ describe('QA report export', () => {
     );
     const currentSession = sessionFixture({ networkObservations: [] });
 
-    const report = createExportReport(currentSession, '0.5.1', runCompleted);
-    const markdown = exportReportMarkdown(currentSession, '0.5.1', runCompleted);
+    const report = createExportReport(currentSession, '0.6.0', runCompleted);
+    const markdown = exportReportMarkdown(currentSession, '0.6.0', runCompleted);
 
     expect(report.qaScorecard).toMatchObject({
       planName: 'Checkout QA',

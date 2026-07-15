@@ -8,6 +8,17 @@ import {
   detectInspectedExpression,
   getInspectedPageUrl,
 } from '../features/chrome/inspectedWindowClient';
+import { captureDiscoverySnapshot } from '../features/discovery/captureDiscovery';
+import {
+  mergeDiscoveryEvidence,
+  tagManagerDiscoveryEvidence,
+} from '../features/discovery/discoveryEvidence';
+import {
+  EMPTY_DISCOVERY_STATE,
+  type DiscoverySnapshot,
+  type DiscoveryState,
+  type DiscoveryTechnologyEvidence,
+} from '../features/discovery/discoveryModels';
 import { withPlatformDiagnostics } from '../features/platform/platformDiagnosticsRuntime';
 import { platformAdapterForSession } from '../features/platform/platformRegistry';
 import {
@@ -32,6 +43,7 @@ const MAX_TIMELINE_ENTRIES = 1500;
 interface DiagnosticsState {
   ready: boolean;
   session: DiagnosticSession;
+  discovery: DiscoveryState;
   settings: ExtensionSettings;
   qaRun?: QaPlanRun;
   inspectedTabActive?: boolean;
@@ -60,7 +72,12 @@ function blankSession(pageUrl = '', captureMayBeIncomplete = true): DiagnosticSe
   };
 }
 
-let state: DiagnosticsState = { ready: false, session: blankSession(), settings: DEFAULT_SETTINGS };
+let state: DiagnosticsState = {
+  ready: false,
+  session: blankSession(),
+  discovery: EMPTY_DISCOVERY_STATE,
+  settings: DEFAULT_SETTINGS,
+};
 let refreshSequence = 0;
 let qaRunWriteSequence = 0;
 let qaRunWritePending = false;
@@ -127,9 +144,14 @@ async function refreshFromBackground() {
     tabId,
   } satisfies ExtensionMessage)) as BackgroundTabSession;
   if (sequence !== refreshSequence) return;
+  const session = hydrate(source, state.session);
   setState({
     ...state,
-    session: hydrate(source, state.session),
+    session,
+    discovery: mergeDiscoveryEvidence(
+      state.discovery,
+      tagManagerDiscoveryEvidence(session.tagManagers),
+    ),
     qaRun: qaRunWritePending ? state.qaRun : source.qaRun,
   });
 }
@@ -207,6 +229,35 @@ export const diagnosticsActions = {
         observations,
       } satisfies ExtensionMessage),
     );
+  },
+  addDiscoveryEvidence(evidence: DiscoveryTechnologyEvidence[]) {
+    if (!evidence.length) return;
+    setState({ ...state, discovery: mergeDiscoveryEvidence(state.discovery, evidence) });
+  },
+  async captureDiscovery(): Promise<DiscoverySnapshot> {
+    const result = await captureDiscoverySnapshot();
+    const snapshots = [...state.discovery.snapshots, result.snapshot].slice(-10);
+    let discovery = mergeDiscoveryEvidence(state.discovery, result.technologies);
+    discovery = {
+      ...discovery,
+      snapshots,
+      baselineSnapshotId: discovery.baselineSnapshotId ?? result.snapshot.id,
+    };
+    setState({ ...state, discovery });
+    return result.snapshot;
+  },
+  setDiscoveryBaseline(snapshotId: string) {
+    if (!state.discovery.snapshots.some((snapshot) => snapshot.id === snapshotId)) return;
+    setState({
+      ...state,
+      discovery: { ...state.discovery, baselineSnapshotId: snapshotId },
+    });
+  },
+  clearDiscoverySnapshots() {
+    setState({
+      ...state,
+      discovery: { ...state.discovery, snapshots: [], baselineSnapshotId: undefined },
+    });
   },
   async navigation(url: string) {
     const inspectedPageUrl = (await getInspectedPageUrl()) ?? url;

@@ -3,6 +3,11 @@ import type {
   OracleCxTagLoader,
   OracleNetworkObservation,
 } from '../src/features/models';
+import type {
+  DiscoveryField,
+  DiscoverySnapshot,
+  DiscoveryState,
+} from '../src/features/discovery/discoveryModels';
 
 export function loaderFixture(overrides: Partial<OracleCxTagLoader> = {}): OracleCxTagLoader {
   return {
@@ -66,6 +71,70 @@ export function sessionFixture(overrides: Partial<DiagnosticSession> = {}): Diag
     timeline: [],
     captureMayBeIncomplete: true,
     droppedObservationCount: 0,
+    ...overrides,
+  };
+}
+
+export function discoveryFieldFixture(overrides: Partial<DiscoveryField> = {}): DiscoveryField {
+  return {
+    id: 'discovery-field-1',
+    providerId: 'google',
+    sourceObject: 'dataLayer',
+    path: 'dataLayer[0].page_name',
+    value: 'Product detail',
+    valueType: 'string',
+    state: 'populated',
+    entryIndex: 0,
+    truncated: false,
+    sensitivity: 'none',
+    sensitivityReasons: [],
+    ...overrides,
+  };
+}
+
+export function discoverySnapshotFixture(
+  fields: DiscoveryField[] = [discoveryFieldFixture()],
+  overrides: Partial<DiscoverySnapshot> = {},
+): DiscoverySnapshot {
+  return {
+    id: 'snapshot-1',
+    capturedAt: '2026-01-01T00:00:02.000Z',
+    pageUrl: 'https://www.example.test/product',
+    layers: [
+      {
+        providerId: 'google',
+        objectName: 'dataLayer',
+        label: 'Google dataLayer',
+        kind: 'queue',
+        totalEntries: 1,
+        truncated: false,
+        fields,
+      },
+    ],
+    ...overrides,
+  };
+}
+
+export function discoveryStateFixture(
+  snapshot = discoverySnapshotFixture(),
+  overrides: Partial<DiscoveryState> = {},
+): DiscoveryState {
+  return {
+    technologies: [
+      {
+        id: 'technology-1',
+        providerId: 'google',
+        technologyKind: 'tag-manager',
+        label: 'Google Tag Manager',
+        identifier: 'GTM-EXAMPLE',
+        source: 'network',
+        confidence: 'direct',
+        evidence: 'A Google Tag Manager container library request was observed.',
+        observedAt: '2026-01-01T00:00:00.000Z',
+      },
+    ],
+    snapshots: [snapshot],
+    baselineSnapshotId: snapshot.id,
     ...overrides,
   };
 }

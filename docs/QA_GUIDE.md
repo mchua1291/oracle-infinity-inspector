@@ -81,6 +81,16 @@ Never run this fixture with Oracle request blocking disabled.
 9. Review duplicate, full expected-profile, request failure, empty-value, raw-email, payment-card, phone, token, and catalog warnings. Long values in documented identifier fields should remain identifiers, but a raw email is still a high-severity finding regardless of field name.
 10. For commerce interactions, confirm the displayed reserved event name and transaction code, then review line-item alignment, subtotal math, and format findings. Low-severity companion/event-type findings are prompts for implementation-specific review where Oracle's examples are inconsistent.
 
+## Existing technology and data-layer discovery
+
+1. Reload once with DevTools open, then confirm standard Google, Adobe, or Tealium technology evidence agrees with the browser Network and Elements panels.
+2. In Discovery, select **Capture baseline** immediately before one approved interaction. Confirm only supported data objects appear and that no client tracking call fires because of the capture.
+3. Perform the interaction and select **Capture comparison**. Confirm new or changed fields appear in **Changes** without modifying the site's data-layer functions.
+4. In **Infinity reuse**, confirm an exact same-name/same-value field is **already collected**, a populated unmatched field is **candidate to map**, a same-name/different-value field is highlighted, and empty/null values remain visible.
+5. Confirm raw email-shaped values receive a sensitivity badge while timestamp-named 10/13-digit values do not receive a phone warning merely because of their length.
+6. Review Google `dataLayer`, Adobe `adobeDataLayer`, Tealium `utag_data`, and `utag.data` only on synthetic or authorized pages. Never commit a real snapshot as a fixture or public screenshot.
+7. Confirm **Clear snapshots** removes captured values while leaving passive technology evidence available.
+
 ## QA contracts and consent checkpoints
 
 1. Translate the approved manual test plan into named **QA Plan** steps. Keep each step scoped to one interaction so unexpected or duplicate events remain attributable.
@@ -99,8 +109,9 @@ Never run this fixture with Oracle request blocking disabled.
 3. Confirm every captured event contains request metadata, event-scoped QA findings, and all observed parameters grouped as out-of-the-box, custom, or needs review.
 4. Confirm raw values, request URLs, and account GUIDs are preserved. Confirm empty strings and nulls are explicitly identified as potential issues.
 5. When a QA run is present, confirm the scorecard includes the expected plan, step result counts, consent snapshots, expectation results, and findings. Confirm events captured on completed earlier steps remain in the report after navigation.
-6. Confirm JSON reports identify schema version 3 and the expected `platform.id`; adapter tests and fixtures must never contain real client traffic.
-7. Handle or delete exported client QA reports according to the approved retention process.
+6. When Discovery snapshots exist, confirm JSON and Markdown include technology evidence, reuse assessments, and changed fields. Confirm only JSON contains the complete bounded flattened snapshot data.
+7. Confirm JSON reports identify schema version 4 and the expected `platform.id`; adapter and discovery-provider tests and fixtures must never contain real client traffic.
+8. Handle or delete exported client QA reports according to the approved retention process.
 
 ## Release checklist
 
@@ -110,5 +121,5 @@ Never run this fixture with Oracle request blocking disabled.
 - No remote script, telemetry, broad `host_permissions`, or request-blocking permission is present.
 - No real account GUID, customer data, email, token, or order data appears in source or fixtures.
 - Tests use only sanitized fixtures.
-- Manual synchronous, asynchronous, no-tag, blocked DC API, QA contract, consent checkpoint, scorecard export, complete-payload export, and empty/null checks pass.
+- Manual synchronous, asynchronous, no-tag, blocked DC API, Discovery baseline/comparison, QA contract, consent checkpoint, scorecard export, complete-payload export, and empty/null checks pass.
 - Documentation verification date and catalog version are current.

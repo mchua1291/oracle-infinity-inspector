@@ -5,11 +5,16 @@ import type {
   QaPlanRun,
   QaScorecard,
 } from '../models';
+import type {
+  DiscoveryField,
+  DiscoveryState,
+  ExportedDiscovery,
+} from '../discovery/discoveryModels';
 import type { PlatformAdapter } from '../platform/platformAdapter';
 import { platformAdapterForSession } from '../platform/platformRegistry';
 import { createExportReport } from './exportJson';
 
-function text(value: string | number | null | undefined): string {
+function text(value: string | number | boolean | null | undefined): string {
   if (value === undefined || value === '') return 'Unavailable';
   if (value === null) return '**null**';
   return String(value)
@@ -146,14 +151,76 @@ function scorecardSection(scorecard?: QaScorecard): string[] {
   ];
 }
 
+function discoveryValue(field: DiscoveryField): string {
+  if (field.state === 'empty-string') return '**empty string**';
+  if (field.state === 'null') return '**null**';
+  return text(field.value);
+}
+
+function discoverySection(discovery?: ExportedDiscovery): string[] {
+  if (!discovery) return [];
+  const changed = discovery.comparison.filter((entry) => entry.status !== 'unchanged');
+  return [
+    '## Existing implementation discovery',
+    '',
+    `- Technologies observed: ${discovery.technologies.length}`,
+    `- Data-layer snapshots: ${discovery.snapshots.length}`,
+    `- Latest reuse assessments: ${discovery.reuseAssessments.length}`,
+    `- Changed fields versus baseline: ${changed.length}`,
+    '',
+    '### Technology evidence',
+    '',
+    ...(discovery.technologies.length
+      ? [
+          '| Provider | Technology | Type | Identifier | Source | Confidence |',
+          '| --- | --- | --- | --- | --- | --- |',
+          ...discovery.technologies.map(
+            (item) =>
+              `| ${text(item.providerId)} | ${text(item.label)} | ${text(item.technologyKind)} | ${text(item.identifier)} | ${text(item.source)} | ${text(item.confidence)} |`,
+          ),
+        ]
+      : ['- No supported technology evidence observed.']),
+    '',
+    '### Infinity reuse assessment',
+    '',
+    ...(discovery.reuseAssessments.length
+      ? [
+          '| Provider | Source object | Field | Observed value | State | Assessment | Infinity name match | Sensitivity |',
+          '| --- | --- | --- | --- | --- | --- | --- | --- |',
+          ...discovery.reuseAssessments.map(
+            (item) =>
+              `| ${text(item.field.providerId)} | ${text(item.field.sourceObject)} | ${text(item.canonicalPath)} | ${discoveryValue(item.field)} | ${text(item.field.state)} | ${text(item.status)} | ${text(item.matchingParameterNames.join(', '))} | ${text(item.field.sensitivity)} |`,
+          ),
+        ]
+      : ['- Capture a supported data-layer snapshot to generate reuse assessments.']),
+    '',
+    ...(changed.length
+      ? [
+          '### Changed fields versus baseline',
+          '',
+          '| Status | Field | Before | After |',
+          '| --- | --- | --- | --- |',
+          ...changed.map((entry) => {
+            const field = entry.after ?? entry.before;
+            return `| ${entry.status} | ${text(field?.path)} | ${entry.before ? discoveryValue(entry.before) : 'Not present'} | ${entry.after ? discoveryValue(entry.after) : 'Not present'} |`;
+          }),
+          '',
+        ]
+      : []),
+    '_Discovery name matching is conservative. A candidate is not an approved semantic mapping until the client confirms it._',
+    '',
+  ];
+}
+
 export function exportReportMarkdown(
   session: DiagnosticSession,
   version?: string,
   qaRun?: QaPlanRun,
+  discovery?: DiscoveryState,
 ): string {
   const adapter = platformAdapterForSession(session);
   const { identity } = adapter;
-  const report = createExportReport(session, version, qaRun);
+  const report = createExportReport(session, version, qaRun, discovery);
   const { summary } = report;
   return [
     `# ${identity.productName} QA Report`,
@@ -173,6 +240,7 @@ export function exportReportMarkdown(
     `- Capture may be incomplete: ${report.page.captureMayBeIncomplete ? 'yes' : 'no'}`,
     '',
     ...scorecardSection(report.qaScorecard),
+    ...discoverySection(report.discovery),
     '## Implementation evidence',
     '',
     '### Tag managers',

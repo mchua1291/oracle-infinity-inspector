@@ -59,9 +59,13 @@ describe('popup companion', () => {
     expect(screen.getByText('3')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Scan current page' }));
+    expect(screen.getByRole('button', { name: /^Scanning/ })).toBeDisabled();
     await waitFor(() =>
       expect(chrome.sendMessage).toHaveBeenCalledWith({ type: 'SCAN_TAB_DOM_ONCE', tabId: 7 }),
     );
     expect(await screen.findByText('Page implementation evidence refreshed.')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Scan current page' })).toBeEnabled(),
+    );
   });
 });

@@ -1,12 +1,14 @@
 # Oracle Infinity Inspector
 
-Oracle Infinity Inspector is a local-first Microsoft Edge and Chromium DevTools extension for inspecting and documenting Oracle Infinity implementations. It reports CX Tag loader evidence, browser-visible collection events, complete observed payloads, implementation warnings, and QA-ready reports.
+Oracle Infinity Inspector is a local-first Microsoft Edge and Chromium DevTools extension for inspecting and documenting Oracle Infinity implementations. It reports CX Tag loader evidence, browser-visible collection events, complete observed payloads, implementation warnings, existing analytics technology and reusable data-layer candidates, and QA-ready reports.
 
 The extension is distributed as a ready-built GitHub release package and as source code. It is loaded as an unpacked extension and is not published in the Microsoft Edge Add-ons or Chrome Web Store.
 
 ## What it does
 
 - Detects Oracle CX Tag loaders and common tag-manager implementation clues.
+- Discovers supported Google, Adobe, and Tealium technology evidence and browser-visible data-layer fields without invoking client tracking APIs.
+- Compares before/after data-layer snapshots and identifies conservative candidates that could be mapped into Infinity.
 - Separates Infinity libraries and support traffic from data collection events.
 - Deduplicates overlapping HAR and live-network observations using deterministic request identities.
 - Captures browser-visible `dcs.gif` and DC API v3 event payloads.
@@ -26,6 +28,10 @@ The extension never calls Oracle tracking functions, changes page requests, uplo
 The Overview combines implementation evidence, event counts, parameter classifications, and QA findings in one DevTools workspace.
 
 ![Sanitized Oracle Infinity Inspector overview using synthetic example.test data](docs/images/overview.png)
+
+Discovery identifies supported Google, Adobe, and Tealium tooling, explores bounded page-context data snapshots, compares an approved before/after interaction, and distinguishes fields already collected by Infinity from candidates that require client-confirmed mapping.
+
+![Sanitized technology and reusable data discovery workspace using synthetic example.test data](docs/images/discovery.png)
 
 Network Events keeps each complete event and its payload together, including out-of-the-box, custom, unknown, empty, and null values.
 
@@ -94,12 +100,13 @@ See [Installation](docs/INSTALLATION.md) for updating, removal, Chrome instructi
 1. Open DevTools on the target tab before reloading the page.
 2. Clear the inspector session and reload.
 3. Review **Overview** and **Implementation** for the loader, libraries, account configuration, load mode, and tag-manager clues.
-4. In **QA Plan**, create or select a reusable plan with named scenario steps and any required consent checkpoints.
-5. Start one step immediately before its approved interaction, wait for collection traffic to settle, then complete the step.
-6. Review the step's pass/warn/fail result and supporting findings. Repeat for each step.
-7. Open **Network Events** to inspect each complete payload and review empty/null values, custom parameters, and **Warnings**.
-8. Configure an expected domain profile in **Settings** when validating a known implementation.
-9. Export JSON for machine-readable evidence or Markdown for a readable report with the contract scorecard.
+4. In **Discovery**, capture a baseline, perform one approved interaction, capture a comparison, and review supported data-layer fields that may be reusable in Infinity.
+5. In **QA Plan**, create or select a reusable plan with named scenario steps and any required consent checkpoints.
+6. Start one step immediately before its approved interaction, wait for collection traffic to settle, then complete the step.
+7. Review the step's pass/warn/fail result and supporting findings. Repeat for each step.
+8. Open **Network Events** to inspect each complete payload and review empty/null values, custom parameters, and **Warnings**.
+9. Configure an expected domain profile in **Settings** when validating a known implementation.
+10. Export JSON for machine-readable evidence or Markdown for a readable report with discovery evidence and the contract scorecard.
 
 The toolbar popup is useful for a quick loader/status check, but complete network capture and reports require the DevTools panel.
 
@@ -116,6 +123,7 @@ See [Usage](docs/USAGE.md) for a detailed walkthrough and [QA Guide](docs/QA_GUI
 - DevTools is attached to one browser tab. Open DevTools separately on another tab.
 - Opening DevTools after page load can miss earlier requests. Clear and reload before drawing conclusions.
 - Loader and tag-manager detection is evidence-based and cannot always prove which rule, container, or consent decision produced a request.
+- Discovery is limited to supported page-context objects and recognizable browser traffic. Self-hosted, proxied, renamed, inaccessible, or server-side implementations can remain undetected, and candidate mappings require client confirmation.
 - Consent checkpoints evaluate only configured expectations against browser-visible collection events, loader evidence, and identifier parameters. They are not a consent-management platform or a legal-compliance determination.
 - Microsoft Edge 102+ is the verified target. Chrome 102+ is expected-compatible, while other Chromium browsers are unverified; Firefox and Safari are unsupported.
 
@@ -147,6 +155,7 @@ Generated output is written to `dist` and is intentionally not committed. After 
 - [Troubleshooting](docs/TROUBLESHOOTING.md)
 - [QA and fixture guide](docs/QA_GUIDE.md)
 - [Oracle Infinity detection rules](docs/ORACLE_INFINITY_DETECTION.md)
+- [Existing technology and reusable data discovery](docs/DISCOVERY.md)
 - [Privacy and security](docs/PRIVACY_AND_SECURITY.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Platform adapter architecture](docs/PLATFORM_ADAPTERS.md)

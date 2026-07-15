@@ -45,6 +45,17 @@ A DevTools instance is attached to the tab where it was opened. It follows navig
 
 Absence from the inspector is not proof of absence until capture timing and visibility limitations have been ruled out.
 
+## Discovery finds a platform but no reusable data
+
+- Reload once with DevTools open so both library and collection requests are available.
+- Select **Capture baseline**; passive technology evidence does not automatically read page-context values.
+- Confirm the implementation uses a supported object such as `dataLayer`, `adobeDataLayer`, `utag_data`, or `utag.data`.
+- A custom Google data-layer name is discovered only when it remains visible in a standard GTM bootstrap argument or `l` request parameter.
+- Self-hosted/proxied tools, custom Adobe Web SDK instance names, consent-blocked objects, inaccessible frames, server-side tagging, and renamed globals may remain unavailable.
+- If a layer is present but a getter, proxy, function, cycle, DOM node, excessive depth, or capture limit prevents safe traversal, review its explicit unsupported/truncated marker.
+
+Do not paste arbitrary JavaScript into the inspected page to make an object visible. Confirm the implementation with the client and browser DevTools, then document unsupported custom conventions as a limitation.
+
 ## Events appear more than once
 
 Clear the session and reload once with DevTools open. If identical events still repeat, compare timestamps, request URLs, and payloads with Edge's Network panel. Some implementations legitimately fire duplicates; exact capture duplicates should be reported with sanitized evidence.
