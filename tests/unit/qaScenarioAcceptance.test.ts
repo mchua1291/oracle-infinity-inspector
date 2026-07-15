@@ -209,9 +209,9 @@ describe('multi-step QA scenario acceptance', () => {
       networkObservations: [],
       parameters: [],
     });
-    const report = createExportReport(postNavigationSession, '0.5.1', run);
-    const jsonReport = JSON.parse(exportReportJson(postNavigationSession, '0.5.1', run));
-    const markdownReport = exportReportMarkdown(postNavigationSession, '0.5.1', run);
+    const report = createExportReport(postNavigationSession, '0.6.0', run);
+    const jsonReport = JSON.parse(exportReportJson(postNavigationSession, '0.6.0', run));
+    const markdownReport = exportReportMarkdown(postNavigationSession, '0.6.0', run);
 
     expect(ExportedDiagnosticReportSchema.safeParse(report).success).toBe(true);
     expect(report.events.map((event) => event.id)).toEqual([

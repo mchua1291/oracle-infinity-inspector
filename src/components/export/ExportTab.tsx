@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { DiagnosticSession, QaPlanRun } from '../../features/models';
+import type { DiscoveryState } from '../../features/discovery/discoveryModels';
 import { createExportReport, exportReportJson } from '../../features/export/exportJson';
 import { exportReportMarkdown } from '../../features/export/exportMarkdown';
 import { platformAdapterForSession } from '../../features/platform/platformRegistry';
@@ -8,18 +9,26 @@ import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { Notice } from '../ui/Notice';
 
-export function ExportTab({ session, qaRun }: { session: DiagnosticSession; qaRun?: QaPlanRun }) {
+export function ExportTab({
+  session,
+  qaRun,
+  discovery,
+}: {
+  session: DiagnosticSession;
+  qaRun?: QaPlanRun;
+  discovery?: DiscoveryState;
+}) {
   const adapter = platformAdapterForSession(session);
   const [copied, setCopied] = useState(false);
   const [clientDataAcknowledged, setClientDataAcknowledged] = useState(false);
-  const version = typeof chrome !== 'undefined' ? chrome.runtime.getManifest().version : '0.5.1';
+  const version = typeof chrome !== 'undefined' ? chrome.runtime.getManifest().version : '0.6.0';
   const report = useMemo(
-    () => createExportReport(session, version, qaRun),
-    [session, version, qaRun],
+    () => createExportReport(session, version, qaRun, discovery),
+    [session, version, qaRun, discovery],
   );
   const markdown = useMemo(
-    () => exportReportMarkdown(session, version, qaRun),
-    [session, version, qaRun],
+    () => exportReportMarkdown(session, version, qaRun, discovery),
+    [session, version, qaRun, discovery],
   );
   const baseName = reportFileName(session.pageUrl, report.platform.id);
   const parameterCount = report.events.reduce(
@@ -49,6 +58,14 @@ export function ExportTab({ session, qaRun }: { session: DiagnosticSession; qaRu
             <Metric label="Libraries" value={report.libraries.length} />
             <Metric label="Support traffic" value={report.supportTraffic.length} />
             <Metric label="Tag managers" value={report.tagManagers.length} />
+            <Metric
+              label="Discovery candidates"
+              value={
+                report.discovery?.reuseAssessments.filter(
+                  (item) => item.status === 'available-not-collected',
+                ).length ?? 0
+              }
+            />
             <Metric label="Parameters" value={parameterCount} />
             <Metric label="Empty / null" value={emptyValueCount} warning={emptyValueCount > 0} />
             <Metric label="Diagnostics" value={report.warnings.length} />
@@ -93,7 +110,7 @@ export function ExportTab({ session, qaRun }: { session: DiagnosticSession; qaRu
               onClick={() =>
                 download(
                   `${baseName}.json`,
-                  exportReportJson(session, version, qaRun),
+                  exportReportJson(session, version, qaRun, discovery),
                   'application/json',
                 )
               }
@@ -109,7 +126,7 @@ export function ExportTab({ session, qaRun }: { session: DiagnosticSession; qaRu
             </Button>
             <Button
               disabled={!clientDataAcknowledged}
-              className="border-stone-300 bg-white text-ink hover:bg-stone-100"
+              variant="secondary"
               onClick={() =>
                 void navigator.clipboard.writeText(markdown).then(() => {
                   setCopied(true);

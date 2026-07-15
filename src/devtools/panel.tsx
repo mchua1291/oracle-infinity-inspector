@@ -28,6 +28,7 @@ runPanelOperation(() =>
     stopNetworkClient = startDevtoolsNetworkClient(
       {
         onObservations: diagnosticsActions.addObservations,
+        onDiscoveryEvidence: diagnosticsActions.addDiscoveryEvidence,
         onNavigated: diagnosticsActions.navigation,
       },
       getDiagnosticsState().settings.importedCatalog,

@@ -1,6 +1,7 @@
 export const tabs = [
   'Overview',
   'Implementation',
+  'Discovery',
   'Network Events',
   'QA Plan',
   'Event Timeline',

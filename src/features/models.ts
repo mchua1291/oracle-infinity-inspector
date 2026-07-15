@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ExportedDiscoverySchema } from './discovery/discoveryModels';
 
 export const ParseStatusSchema = z.enum(['success', 'partial', 'failed']);
 
@@ -555,6 +556,7 @@ export const ExportedDiagnosticReportSchema = z.object({
   events: z.array(ExportedQaEventSchema),
   warnings: z.array(DiagnosticWarningSchema),
   qaScorecard: QaScorecardSchema.optional(),
+  discovery: ExportedDiscoverySchema.optional(),
   notes: z.array(z.string()),
 });
 export type ExportedDiagnosticReport = z.infer<typeof ExportedDiagnosticReportSchema>;

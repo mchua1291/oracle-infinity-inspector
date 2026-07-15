@@ -9,6 +9,9 @@ import type {
   QaPlanRun,
 } from '../models';
 import { buildQaScorecard } from '../qa/qaContracts';
+import { compareDiscoverySnapshots } from '../discovery/discoveryComparison';
+import type { DiscoveryState, ExportedDiscovery } from '../discovery/discoveryModels';
+import { analyzeDiscoveryReuse } from '../discovery/reuseAnalyzer';
 
 function findingsForEvent(
   event: PlatformNetworkObservation,
@@ -58,8 +61,9 @@ function createQaEvent(
 
 export function createExportReport(
   session: DiagnosticSession,
-  extensionVersion = '0.5.1',
+  extensionVersion = '0.6.0',
   qaRun?: QaPlanRun,
+  discovery?: DiscoveryState,
 ): ExportedDiagnosticReport {
   const adapter = platformAdapterForSession(session);
   const { identity } = adapter;
@@ -82,9 +86,27 @@ export function createExportReport(
     ],
     parameters: collectionEvents.flatMap((event) => event.parameters),
   };
+  const latestDiscoverySnapshot = discovery?.snapshots.at(-1);
+  const baselineDiscoverySnapshot = discovery?.snapshots.find(
+    (snapshot) => snapshot.id === discovery.baselineSnapshotId,
+  );
+  const exportedDiscovery: ExportedDiscovery | undefined = discovery
+    ? {
+        ...discovery,
+        reuseAssessments: latestDiscoverySnapshot
+          ? analyzeDiscoveryReuse(latestDiscoverySnapshot, session)
+          : [],
+        comparison:
+          baselineDiscoverySnapshot &&
+          latestDiscoverySnapshot &&
+          baselineDiscoverySnapshot.id !== latestDiscoverySnapshot.id
+            ? compareDiscoverySnapshots(baselineDiscoverySnapshot, latestDiscoverySnapshot)
+            : [],
+      }
+    : undefined;
 
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     reportType: identity.reportType,
     platform: {
       id: identity.id,
@@ -109,6 +131,7 @@ export function createExportReport(
     events,
     warnings: session.warnings,
     qaScorecard: buildQaScorecard(qaRun),
+    discovery: exportedDiscovery,
     notes: adapter.exportNotes(session),
   };
 }
@@ -117,6 +140,7 @@ export function exportReportJson(
   session: DiagnosticSession,
   version?: string,
   qaRun?: QaPlanRun,
+  discovery?: DiscoveryState,
 ): string {
-  return JSON.stringify(createExportReport(session, version, qaRun), null, 2);
+  return JSON.stringify(createExportReport(session, version, qaRun, discovery), null, 2);
 }

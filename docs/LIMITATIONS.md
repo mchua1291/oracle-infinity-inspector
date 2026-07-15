@@ -32,6 +32,14 @@ The extension can infer tag-manager injection only from DOM identifiers, inline 
 
 Independent tag-manager detection is intentionally limited to standard Google Tag Manager, Tealium iQ, and Adobe Tags CDN/bootstrap signatures. Self-hosted, proxied, renamed, consent-blocked, or unsupported managers may not be detected. Seeing a manager and an Infinity call on the same page establishes coexistence, not causation.
 
+## Discovery providers and snapshots
+
+Discovery recognizes standard browser-visible Google, Adobe, and Tealium signatures. First-party proxies, server-side containers, renamed globals, inaccessible frames, consent-blocked tools, custom Adobe Web SDK instance names, and unsupported platforms may remain undetected. Adobe Edge Network evidence does not by itself prove which downstream Adobe applications received the data.
+
+On-demand snapshots inspect only supported page-context objects. They do not search every global variable, execute getters, invoke a vendor's computed-state API, or reconstruct values that existed before DevTools opened. Queue history is capped at the latest 100 entries per object; each layer is capped at 500 fields, six levels of depth, and 2,000 characters per scalar value. The UI and JSON report mark truncation and unsupported values.
+
+The initial comparison is exact and browser-local. A field can be called **already collected** only when an observed Infinity parameter has the same normalized name and value. A populated source with no exact name match is a candidate, not a recommendation that its meaning, consent status, ownership, format, or target parameter has been approved. Discovery snapshots last only for the active DevTools panel context and are not a shared implementation inventory.
+
 QA Plan consent checkpoints do not inspect a consent manager's internal state, consent strings, cookies, server-side collection, or legal-policy configuration. They evaluate only client-configured expectations against collection calls captured during the step, current loader evidence, and parameters already classified as identifiers. Loader presence does not prove execution, and no browser-visible call does not prove that every downstream system is suppressed. Treat the result as repeatable QA evidence, not a legal-compliance verdict.
 
 ## QA plans and scorecards

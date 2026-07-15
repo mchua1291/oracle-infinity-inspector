@@ -20,6 +20,8 @@ The panel and popup use a locally implemented, Redwood-inspired token layer: Ora
 active DevTools panel -> activate dormant content scanner
 Inspected DOM -> platform adapter loader scanners + tag-manager scanners -> service worker session cache -> DevTools panel store
 Inspected network -> adapter registry -> product parser/classifiers -> panel store
+Inspected network -> discovery-provider registry -> Google/Adobe/Tealium technology evidence -> panel store
+explicit Discovery capture -> read-only inspected-page probe -> bounded normalized data-layer snapshot -> comparison/reuse analysis
 panel store -> active platform adapter -> diagnostics/summaries -> tabs/export
 saved QA plan -> pure contract evaluator + captured step evidence -> pass/warn/fail scorecard -> export
 panel store -> service worker in-memory summary -> actionable toolbar companion
@@ -35,6 +37,14 @@ No backend is used because all required evidence is already available locally in
 Browser and React runtime surfaces do not select Infinity parsers, scanners, diagnostics, catalogs, profile fields, or terminology directly. They resolve a typed adapter through the validated platform registry. Observations and sessions carry the stable adapter ID, and explicit unknown IDs fail instead of falling back to Infinity.
 
 The current `oracle-infinity` adapter wraps the existing Infinity behavior. A future adapter can add request matchers, payload parsers, loader evidence, catalogs, expected-profile fields, diagnostics, UI labels, and export notes without replacing the DevTools, storage, UI shell, or report-delivery infrastructure. Lightweight identity, DOM, and diagnostics registries keep the popup, content script, and service worker from importing the full panel/catalog bundle. See [Platform adapters](PLATFORM_ADAPTERS.md).
+
+## Discovery provider layer
+
+Discovery providers describe existing source ecosystems rather than the target Oracle platform. Google, Adobe, and Tealium providers recognize bounded network signatures and normalize them into common technology evidence. A self-contained inspected-page probe reads only supported data objects on explicit capture: Google data layers (including custom names discoverable from standard GTM bootstraps), `adobeDataLayer`, Adobe-associated `digitalData`, `utag_data`, and `utag.data`.
+
+The probe enumerates own property descriptors so accessors are reported rather than invoked. It does not wrap push functions, call vendor APIs, patch networking, or enumerate arbitrary browser globals. Each layer is capped at 100 queue entries, 500 flattened fields, six levels of depth, and 2,000 characters per scalar value. Cycles, functions, symbols, DOM nodes, unreadable proxies, and deeper values become explicit unsupported markers.
+
+The reuse analyzer is separate from both discovery providers and the Infinity platform adapter. It compares normalized discovered names and values with the active session's observed target-platform parameters. Exact name/value equality is the only automatic **already collected** conclusion; all other populated sources remain candidates requiring client confirmation. This boundary allows the same discovery providers to be reused by a future Oracle Fusion adapter.
 
 ## Parser and classifier layer
 
@@ -63,7 +73,7 @@ The evaluator is a pure TypeScript module independent from React and Chrome APIs
 
 ## Session and persistence
 
-Full request observations and bodies are not written to long-term storage. They live in the panel store and a bounded `chrome.storage.session` per-tab cache until cleared, the tab closes, or the browser extension session ends. The current QA run and completed-step event snapshots use the same per-tab session storage so a scorecard can span page navigation. The latest 1,000 live observations are retained; the UI reports when older entries are removed. Only user settings, expected profiles, saved QA plan definitions, and explicitly imported catalog entries use `chrome.storage.local`. Files are created only when the user acknowledges the raw-data handling notice and initiates an export.
+Full request observations and bodies are not written to long-term storage. They live in the panel store and a bounded `chrome.storage.session` per-tab cache until cleared, the tab closes, or the browser extension session ends. The current QA run and completed-step event snapshots use the same per-tab session storage so a scorecard can span page navigation. Discovery retains at most 10 snapshots in the active panel store so before/after comparison can span navigation while that DevTools context remains open; those snapshots are not written to `chrome.storage.local` or uploaded. The latest 1,000 live observations are retained; the UI reports when older entries are removed. Only user settings, expected profiles, saved QA plan definitions, and explicitly imported catalog entries use `chrome.storage.local`. Files are created only when the user acknowledges the raw-data handling notice and initiates an export.
 
 ## Build structure
 

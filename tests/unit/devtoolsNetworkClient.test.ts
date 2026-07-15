@@ -53,4 +53,38 @@ describe('DevTools network client', () => {
     expect(() => harCallback?.({})).not.toThrow();
     expect(onObservations).not.toHaveBeenCalled();
   });
+
+  it('routes supported non-Infinity requests to discovery evidence', () => {
+    let finished: ((entry: HarEntry) => void) | undefined;
+    vi.stubGlobal('chrome', {
+      devtools: {
+        network: {
+          onRequestFinished: {
+            addListener: (listener: (entry: HarEntry) => void) => (finished = listener),
+            removeListener: vi.fn(),
+          },
+          onNavigated: { addListener: vi.fn(), removeListener: vi.fn() },
+          getHAR: (callback: (har: unknown) => void) => callback({ entries: [] }),
+        },
+      },
+    });
+    const onDiscoveryEvidence = vi.fn();
+    startDevtoolsNetworkClient({
+      onObservations: vi.fn(),
+      onDiscoveryEvidence,
+      onNavigated: vi.fn(),
+    });
+
+    finished?.({
+      request: {
+        method: 'GET',
+        url: 'https://www.google-analytics.com/g/collect?v=2&tid=G-EXAMPLE',
+      },
+      response: { status: 204, statusText: 'No Content' },
+    });
+
+    expect(onDiscoveryEvidence).toHaveBeenCalledWith([
+      expect.objectContaining({ label: 'Google Analytics', identifier: 'G-EXAMPLE' }),
+    ]);
+  });
 });

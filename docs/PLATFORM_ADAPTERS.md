@@ -2,6 +2,8 @@
 
 The browser-extension infrastructure is product-neutral. Product knowledge is supplied by a registered platform adapter so the current Oracle Infinity implementation can coexist with a future Oracle Fusion analytics implementation during a migration period.
 
+Cross-vendor discovery is a separate provider layer. A discovery provider describes an existing source ecosystem such as Google, Adobe, or Tealium; a platform adapter describes the target Oracle analytics implementation. The reuse analyzer connects their normalized evidence without making either layer depend on the other.
+
 No future Oracle product name, endpoint, or payload contract is assumed. A new adapter should be created only from authorized browser evidence and official documentation.
 
 ## Boundary
@@ -15,6 +17,7 @@ The shared runtime owns:
 - parameter, warning, timeline, and export presentation
 - reusable QA-plan definitions, scenario execution, consent-checkpoint evaluation, and scorecard presentation
 - sensitive-value safeguards
+- provider-neutral technology evidence, bounded page-context snapshots, and before/after comparison
 - JSON/Markdown download and clipboard handling
 - build verification, CI, and Edge smoke testing
 
@@ -31,6 +34,8 @@ An adapter owns:
 - debug actions and product-specific export notes
 
 The full contract is defined in `src/features/platform/platformAdapter.ts`. The registry in `src/features/platform/platformRegistry.ts` validates identifiers and provides deterministic adapter lookup. Runtime surfaces call platform runtimes rather than importing a product parser or scanner directly.
+
+Discovery providers implement the smaller contract in `src/features/discovery/discoveryProvider.ts` and register through `src/features/discovery/discoveryRegistry.ts`. Provider output uses shared discovery models; it never emits Infinity-specific mappings. `reuseAnalyzer.ts` performs the conservative comparison against whichever target platform session is active.
 
 Lightweight identity, DOM, and diagnostics capabilities have separate registries. This prevents the popup, DevTools bootstrap, content script, and service worker from bundling the complete parameter catalog and panel UI merely to obtain a label, scan a script, or calculate a summary. The Infinity content script remains a small self-contained classic script under Manifest V3.
 
@@ -60,7 +65,7 @@ Expected domain profiles also carry `platformId`. An adapter supplies field defi
 
 ## Export compatibility
 
-JSON QA reports use schema version 3 and include:
+JSON QA reports use schema version 4 and include:
 
 - adapter ID
 - product family and display name
@@ -68,6 +73,7 @@ JSON QA reports use schema version 3 and include:
 - adapter-specific report type and catalog version
 - generic event/source strings and platform-specific event details
 - an optional platform-neutral QA contract scorecard with step results, event expectation outcomes, consent snapshots, and findings
+- optional provider-neutral discovery technology evidence, bounded snapshots, comparison results, and target-platform reuse assessments
 
 Consumers should check `schemaVersion`, `platform.id`, and `reportType` before interpreting product-specific fields. A future incompatible report change must increment the schema version.
 

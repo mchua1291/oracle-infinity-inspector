@@ -4,6 +4,21 @@ All notable changes to Oracle Infinity Inspector are documented here.
 
 ## Unreleased
 
+## 0.6.0 - 2026-07-14
+
+### Added
+
+- A provider-neutral Discovery workspace for supported Google, Adobe, and Tealium tag-manager, analytics, collector, and data-layer evidence.
+- Explicit read-only baseline/comparison captures for bounded Google data layers, Adobe Client Data Layer and associated `digitalData`, Tealium `utag_data`, and enriched `utag.data` fields.
+- Conservative Infinity reuse assessments for exact name/value matches, available candidates, differing values, and empty/null source fields.
+- Discovery technology, snapshot, change, reuse, and sensitivity evidence in JSON and Markdown QA exports.
+- Focused provider, page-context normalization, comparison, reuse, export, and Discovery component coverage.
+
+### Changed
+
+- JSON QA exports now use schema version 4 and can include a platform-neutral `discovery` section.
+- Public documentation and synthetic screenshots now cover existing technology and reusable data discovery.
+
 ## 0.5.1 - 2026-07-14
 
 ### Fixed

@@ -51,6 +51,23 @@ Implementation displays:
 
 Tag-manager presence is an implementation clue, not proof that a particular container deployed Infinity.
 
+### Discovery
+
+Discovery inventories supported Google, Adobe, and Tealium evidence and reads bounded snapshots of known page-context data objects. It does not invoke `gtag`, `_satellite`, `alloy`, `utag`, or any Infinity collection API.
+
+1. Reload once with DevTools open so recognizable tag-manager and analytics requests can be observed.
+2. Select **Capture baseline** immediately before an approved interaction. The first snapshot becomes the comparison baseline.
+3. Perform one approved interaction, then select **Capture comparison**.
+4. Review **Infinity reuse** for exact name/value matches, populated candidates, different values, and empty/null sources.
+5. Review **Changes** to see fields added, removed, or changed since the selected baseline.
+6. Use **Data layers** to inspect every safely flattened field retained in the bounded snapshot.
+
+The initial providers recognize standard Google Tag Manager, Google tag/Google Analytics, Adobe Tags, Adobe Analytics AppMeasurement, Adobe Web SDK/Edge Network, Tealium iQ, and Tealium Collect evidence. Supported page objects include standard or discoverable custom Google data layers, `adobeDataLayer`, Adobe-associated `digitalData`, `utag_data`, and `utag.data`.
+
+An **already collected** assessment requires an observed Infinity parameter with the same normalized name and value. A **candidate to map** means only that a populated browser-visible source exists and no observed Infinity parameter has the same name. It is not an approved semantic mapping. Confirm meaning, ownership, format, consent treatment, and the intended Infinity parameter name with the client.
+
+Raw values stay visible. Empty/null sources and sensitive shapes such as email addresses remain highlighted. Snapshots are held in the active DevTools panel, retain up to 10 captures, and are cleared when the panel context ends or when you select **Clear snapshots**.
+
 ### Network Events
 
 Each verified browser-visible collection event appears as an individual row. Select an event to review:
@@ -91,13 +108,13 @@ High-severity findings include malformed requests and raw sensitive values such 
 
 ### Export
 
-- **JSON** preserves structured event, payload, library, tag-manager, diagnostic, and QA scorecard evidence for tooling or archival workflows.
-- **Markdown** creates a readable QA report with the step-by-step pass/warn/fail scorecard.
+- **JSON** preserves structured event, payload, library, tag-manager, discovery snapshot, reuse-assessment, diagnostic, and QA scorecard evidence for tooling or archival workflows.
+- **Markdown** creates a readable QA report with existing technology evidence, reuse candidates, changed fields, and the step-by-step pass/warn/fail scorecard.
 - **Copy readable QA report** places the Markdown version on the clipboard.
 
 Exports contain raw values, request URLs, and identifiers. Download and copy actions remain disabled until you acknowledge the raw client-data notice. Review the file before sharing it, use an approved storage location, and follow the client's retention requirements.
 
-JSON reports use schema version 3 and include a platform adapter identity plus an optional `qaScorecard`. Integrations should check `schemaVersion`, `platform.id`, and `reportType` before interpreting platform-specific details.
+JSON reports use schema version 4 and include a platform adapter identity plus optional `discovery` and `qaScorecard` sections. Integrations should check `schemaVersion`, `platform.id`, and `reportType` before interpreting platform-specific details.
 
 ### Settings
 
@@ -116,11 +133,12 @@ Imported catalog documentation links must point to trusted documentation. Do not
 1. Confirm the inspected URL and expected domain profile.
 2. Confirm loader account GUID, tag ID, configuration, and load mode.
 3. Confirm expected Infinity libraries loaded or were cache-validated without errors.
-4. Start the corresponding QA Plan step, trigger one approved interaction, and complete the step after traffic settles.
-5. Match each interaction to its collection event and complete payload.
-6. Run configured consent checkpoints at the exact before/after states defined by the client test plan.
-7. Review required parameters, empty/null values, formats, commerce correlations, and scorecard findings.
-8. Investigate raw sensitive values and unexpected custom or reserved parameters.
-9. Export the report, record the test conditions, and remove client evidence when retention expires.
+4. Capture a Discovery baseline, perform one approved interaction, capture a comparison, and review candidate reusable fields.
+5. Start the corresponding QA Plan step, trigger one approved interaction, and complete the step after traffic settles.
+6. Match each interaction to its collection event and complete payload.
+7. Run configured consent checkpoints at the exact before/after states defined by the client test plan.
+8. Review required parameters, empty/null values, formats, commerce correlations, discovery candidates, and scorecard findings.
+9. Investigate raw sensitive values and unexpected custom or reserved parameters.
+10. Export the report, record the test conditions, and remove client evidence when retention expires.
 
 See [Known Limitations](LIMITATIONS.md) before reporting missing data and [QA Guide](QA_GUIDE.md) for sanitized fixture testing.
