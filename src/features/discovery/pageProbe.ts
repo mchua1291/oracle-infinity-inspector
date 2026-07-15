@@ -371,6 +371,8 @@ function pageProbe(): RawDiscoveryProbe {
       seen.add(value);
       let descriptors: PropertyDescriptorMap;
       try {
+        // Descriptors expose ordinary accessor names without invoking their getters. A hostile Proxy
+        // can still trap enumeration, so failures are converted to an unreadable marker.
         descriptors = Object.getOwnPropertyDescriptors(value);
       } catch {
         addField({
@@ -457,5 +459,7 @@ function pageProbe(): RawDiscoveryProbe {
 }
 
 export function buildDiscoveryPageProbeExpression(): string {
+  // The function is serialized into the inspected page, so every dependency must remain inside
+  // pageProbe. Its result is bounded plain data and it must not call client tracking functions.
   return `/* __ORACLE_INFINITY_DISCOVERY_PROBE__ */(${pageProbe.toString()})()`;
 }

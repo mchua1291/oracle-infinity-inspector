@@ -80,6 +80,7 @@ Never run this fixture with Oracle request blocking disabled.
 8. Confirm empty strings and explicit nulls remain visible and are highlighted as potential issues.
 9. Review duplicate, full expected-profile, request failure, empty-value, raw-email, payment-card, phone, token, and catalog warnings. Long values in documented identifier fields should remain identifiers, but a raw email is still a high-severity finding regardless of field name.
 10. For commerce interactions, confirm the displayed reserved event name and transaction code, then review line-item alignment, subtotal math, and format findings. Low-severity companion/event-type findings are prompts for implementation-specific review where Oracle's examples are inconsistent.
+11. Navigate through at least two authorized pages in the same inspected tab. Confirm earlier events remain visible, later tagged interactions appear automatically, pause excludes new events, resume captures future events, and clear removes only live history after confirmation.
 
 ## Existing technology and data-layer discovery
 

@@ -21,7 +21,7 @@ export function ExportTab({
   const adapter = platformAdapterForSession(session);
   const [copied, setCopied] = useState(false);
   const [clientDataAcknowledged, setClientDataAcknowledged] = useState(false);
-  const version = typeof chrome !== 'undefined' ? chrome.runtime.getManifest().version : '0.6.0';
+  const version = typeof chrome !== 'undefined' ? chrome.runtime.getManifest().version : '0.7.0';
   const report = useMemo(
     () => createExportReport(session, version, qaRun, discovery),
     [session, version, qaRun, discovery],

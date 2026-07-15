@@ -2,7 +2,7 @@
 
 ## Data handling
 
-The extension has no backend, analytics, telemetry, user account, or remote runtime dependency. Inspected-page data is not sent to any external service. Full network observations live in the active panel and bounded `chrome.storage.session` for the current browser extension session. The session cache survives service-worker suspension but is not long-term storage. The extension never requests browsing history and does not persist full request payloads across browser sessions.
+The extension has no backend, analytics, telemetry, user account, or remote runtime dependency. Inspected-page data is not sent to any external service. Full network observations live in the active panel and bounded `chrome.storage.session` for the current browser extension session. They accumulate automatically across navigation in the attached tab until cleared, the tab closes, or the browser extension session ends. Pausing drops newly completed observations until recording is resumed. The session cache survives service-worker suspension but is not long-term storage. The extension never requests browsing history and does not persist full request payloads across browser sessions.
 
 `chrome.storage.local` stores only user settings, expected domain profiles, saved QA plan definitions, and explicitly imported catalog entries. An expected account GUID or QA rule is saved only when the user enters and saves it. Diagnostic files are written only through an explicit local export.
 

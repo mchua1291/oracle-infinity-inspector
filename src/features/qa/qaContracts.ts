@@ -320,6 +320,8 @@ export function startQaStep(run: QaPlanRun, stepId: string, session: DiagnosticS
   if (run.activeStepId)
     throw new Error('Complete or cancel the active QA step before starting another step.');
   const adapter = platformAdapterForSession(session);
+  // Use IDs rather than an array index because bounded session retention can remove older events
+  // while a multi-page QA run remains active.
   const baselineEventIds = session.networkObservations
     .filter(adapter.isCollectionObservation)
     .map((event) => event.id);
@@ -357,6 +359,8 @@ export function completeQaStep(
   if (!stepRun || stepRun.status !== 'in-progress')
     throw new Error('Start the QA step before completing it.');
   const baseline = new Set(stepRun.baselineEventIds);
+  // Completed steps store immutable copies of post-baseline events so clearing the live history
+  // cannot invalidate an already scored result.
   const events = session.networkObservations.filter(
     (event) => adapter.isCollectionObservation(event) && !baseline.has(event.id),
   );

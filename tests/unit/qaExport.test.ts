@@ -77,8 +77,8 @@ describe('QA report export', () => {
   it('exports technology evidence, discovery snapshots, reuse candidates, and comparisons', () => {
     const discovery = discoveryStateFixture();
     const session = sessionFixture();
-    const report = createExportReport(session, '0.6.0', undefined, discovery);
-    const markdown = exportReportMarkdown(session, '0.6.0', undefined, discovery);
+    const report = createExportReport(session, '0.7.0', undefined, discovery);
+    const markdown = exportReportMarkdown(session, '0.7.0', undefined, discovery);
 
     expect(report.discovery).toMatchObject({
       baselineSnapshotId: 'snapshot-1',
@@ -159,8 +159,8 @@ describe('QA report export', () => {
     );
     const currentSession = sessionFixture({ networkObservations: [] });
 
-    const report = createExportReport(currentSession, '0.6.0', runCompleted);
-    const markdown = exportReportMarkdown(currentSession, '0.6.0', runCompleted);
+    const report = createExportReport(currentSession, '0.7.0', runCompleted);
+    const markdown = exportReportMarkdown(currentSession, '0.7.0', runCompleted);
 
     expect(report.qaScorecard).toMatchObject({
       planName: 'Checkout QA',

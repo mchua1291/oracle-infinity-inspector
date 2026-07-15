@@ -32,14 +32,27 @@ export function detectDuplicatePageViews(
     groups.set(signature, [...(groups.get(signature) ?? []), event]);
   }
   return [...groups.entries()].flatMap(([signature, matches]) => {
-    const duplicateIds = matches.filter((event, index) => {
-      if (index === 0) return true;
-      return (
-        Date.parse(event.timestamp) - Date.parse(matches[index - 1].timestamp) <= windowMilliseconds
-      );
-    });
-    return duplicateIds.length > 1
-      ? [{ signature, eventIds: duplicateIds.map((event) => event.id) }]
-      : [];
+    const duplicateRuns: OracleNetworkObservation[][] = [];
+    let currentRun: OracleNetworkObservation[] = [];
+
+    // A signature can recur legitimately later in a session. Build contiguous time-window runs so
+    // evidence IDs identify the events that are actually adjacent, not the first event ever seen.
+    for (const event of matches) {
+      const previous = currentRun.at(-1);
+      if (
+        previous &&
+        Date.parse(event.timestamp) - Date.parse(previous.timestamp) > windowMilliseconds
+      ) {
+        if (currentRun.length > 1) duplicateRuns.push(currentRun);
+        currentRun = [];
+      }
+      currentRun.push(event);
+    }
+    if (currentRun.length > 1) duplicateRuns.push(currentRun);
+
+    return duplicateRuns.map((run) => ({
+      signature,
+      eventIds: run.map((event) => event.id),
+    }));
   });
 }

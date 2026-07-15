@@ -16,7 +16,7 @@ import { EmptyState } from './ui/EmptyState';
 import { WarningsTab } from './warnings/WarningsTab';
 
 export function App() {
-  const { ready, session, discovery, settings, qaRun, inspectedTabActive, error } =
+  const { ready, recording, session, discovery, settings, qaRun, inspectedTabActive, error } =
     useDiagnosticsStore();
   const [active, setActive] = useState<TabName>('Overview');
   const summary = buildPlatformSummary(session);
@@ -71,6 +71,12 @@ export function App() {
       inspectedTabActive={inspectedTabActive}
       tabId={session.tabId}
       platform={platform}
+      recording={recording}
+      hasRecordedEvents={session.networkObservations.length > 0}
+      onToggleRecording={() =>
+        recording ? diagnosticsActions.pauseRecording() : diagnosticsActions.resumeRecording()
+      }
+      onClearEvents={diagnosticsActions.clearObservations}
     >
       {content}
     </DevtoolsShell>

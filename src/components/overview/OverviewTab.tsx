@@ -102,6 +102,7 @@ function CardHeader({
         </div>
         <div className="text-right text-xs text-stone-500">
           <p>Attached to Edge tab #{session.tabId} · URL auto-sync enabled</p>
+          <p>Event history continues across navigation until cleared</p>
           <p>Scan {new Date(session.scanTimestamp).toLocaleTimeString()}</p>
           <p>
             {pageContextLabel} ({platformName}):{' '}

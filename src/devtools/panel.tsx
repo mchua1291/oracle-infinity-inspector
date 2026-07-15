@@ -9,6 +9,8 @@ import '../styles/globals.css';
 
 let stopNetworkClient: (() => void) | undefined;
 let panelContextValid = true;
+// Reloading an unpacked extension invalidates every open DevTools context. Once invalidated, stop
+// polling and let the reopened panel create fresh listeners instead of surfacing rejected promises.
 const invalidatePanelContext = () => {
   panelContextValid = false;
   window.clearInterval(pageUrlSyncInterval);

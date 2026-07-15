@@ -42,6 +42,7 @@ const MAX_TIMELINE_ENTRIES = 1500;
 
 interface DiagnosticsState {
   ready: boolean;
+  recording: boolean;
   session: DiagnosticSession;
   discovery: DiscoveryState;
   settings: ExtensionSettings;
@@ -74,10 +75,13 @@ function blankSession(pageUrl = '', captureMayBeIncomplete = true): DiagnosticSe
 
 let state: DiagnosticsState = {
   ready: false,
+  recording: true,
   session: blankSession(),
   discovery: EMPTY_DISCOVERY_STATE,
   settings: DEFAULT_SETTINGS,
 };
+// Ignore a slower background read if a newer refresh has already completed. QA writes use a
+// separate sequence because SESSION_UPDATED can echo the worker's previous run during persistence.
 let refreshSequence = 0;
 let qaRunWriteSequence = 0;
 let qaRunWritePending = false;
@@ -101,6 +105,8 @@ function detectPageContext(session: DiagnosticSession): Promise<boolean | undefi
 }
 
 function hydrate(source: BackgroundTabSession, current: DiagnosticSession): DiagnosticSession {
+  // The background cache and panel can both receive the same HAR observation. Merge by stable
+  // observation ID before deriving parameters, timeline rows, and diagnostics.
   const merged = mergeObservations(current.networkObservations, source.observations);
   const networkObservations = merged.observations;
   const routeTimeline = [...source.timeline, ...current.timeline].filter(
@@ -211,6 +217,9 @@ export const diagnosticsActions = {
     }
   },
   addObservations(observations: PlatformNetworkObservation[]) {
+    // Keep the DevTools listener attached while paused so route and DOM synchronization continue;
+    // only newly completed network observations are intentionally discarded.
+    if (!state.recording) return;
     const source: BackgroundTabSession = {
       schemaVersion: 1,
       pageUrl: state.session.pageUrl,
@@ -261,18 +270,9 @@ export const diagnosticsActions = {
   },
   async navigation(url: string) {
     const inspectedPageUrl = (await getInspectedPageUrl()) ?? url;
-    setState({
-      ...state,
-      session: withPlatformDiagnostics(
-        blankSession(inspectedPageUrl, false),
-        state.settings.expectedProfiles,
-      ),
-    });
-    await chrome.runtime.sendMessage({
-      type: 'CLEAR_SESSION',
-      tabId,
-      pageUrl: inspectedPageUrl,
-    } satisfies ExtensionMessage);
+    // DevTools remains attached to one browser tab across navigation. Preserve accumulated evidence
+    // and add a route marker; clearing here used to erase journeys and race with finishing requests.
+    diagnosticsActions.updateInspectedPageUrl(inspectedPageUrl);
     await chrome.runtime
       .sendMessage({
         type: 'REQUEST_DOM_SCAN',
@@ -280,6 +280,33 @@ export const diagnosticsActions = {
         monitorMutations: state.settings.enableDomMutationMonitoring,
       } satisfies ExtensionMessage)
       .catch(() => undefined);
+  },
+  pauseRecording() {
+    if (state.recording) setState({ ...state, recording: false });
+  },
+  resumeRecording() {
+    if (!state.recording) setState({ ...state, recording: true });
+  },
+  async clearObservations() {
+    await chrome.runtime.sendMessage({
+      type: 'CLEAR_NETWORK_OBSERVATIONS',
+      tabId,
+    } satisfies ExtensionMessage);
+    const timestamp = new Date().toISOString();
+    const session = withPlatformDiagnostics(
+      {
+        ...state.session,
+        startedAt: timestamp,
+        scanTimestamp: timestamp,
+        networkObservations: [],
+        parameters: [],
+        timeline: state.session.timeline.filter((entry) => entry.type === 'route-change'),
+        captureMayBeIncomplete: true,
+        droppedObservationCount: 0,
+      },
+      state.settings.expectedProfiles,
+    );
+    setState({ ...state, session });
   },
   updateInspectedPageUrl(pageUrl: string) {
     if (!pageUrl || pageUrl === state.session.pageUrl) return;

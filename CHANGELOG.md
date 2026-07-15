@@ -4,6 +4,27 @@ All notable changes to Oracle Infinity Inspector are documented here.
 
 ## Unreleased
 
+## 0.7.0 - 2026-07-15
+
+### Added
+
+- Continuous per-tab event recording controls in the DevTools header, including explicit pause,
+  resume, and clear-live-history actions.
+- A repository commenting standard and pull-request checklist for lifecycle, ordering, retention,
+  security, and heuristic invariants.
+
+### Changed
+
+- Network observations and route evidence now accumulate automatically across navigation in the
+  inspected tab instead of resetting on each page load.
+- Long event journeys now use a viewport-bounded, keyboard-focusable list with sticky column headers
+  instead of continuously increasing the DevTools page height.
+
+### Fixed
+
+- Duplicate-page-view warnings now reference the actual adjacent duplicate cluster when the same
+  page-view signature also occurred earlier in a long session.
+
 ## 0.6.0 - 2026-07-14
 
 ### Added

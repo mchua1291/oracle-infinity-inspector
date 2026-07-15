@@ -20,6 +20,8 @@ export function startDevtoolsNetworkClient(
   handlers: NetworkClientHandlers,
   importedCatalog: ParameterCatalogEntry[] = [],
 ): () => void {
+  // DevTools can expose the same request through the initial HAR snapshot and the live completion
+  // listener. Stable observation IDs prevent that overlap from creating duplicate evidence.
   const seen = new Set<string>();
   const emitNew = (observations: PlatformNetworkObservation[]) => {
     const fresh = observations.filter((observation) => {

@@ -103,3 +103,19 @@ it('does not list Infinity libraries as captured data collection events', () => 
   expect(screen.getByText('1 complete events')).toBeInTheDocument();
   expect(screen.queryByText('ubi.js')).not.toBeInTheDocument();
 });
+
+it('keeps long event journeys in a bounded scroll region with sticky headers', () => {
+  render(
+    <NetworkEventsTab session={sessionFixture({ networkObservations: [networkFixture()] })} />,
+  );
+
+  expect(screen.getByRole('region', { name: 'Captured event list' })).toHaveClass(
+    'max-h-[70vh]',
+    'overflow-auto',
+  );
+  expect(screen.getByText('# / time').closest('thead')).toHaveClass('sticky', 'top-0');
+  expect(screen.getByRole('region', { name: 'Event 1 payload details' })).toHaveClass(
+    'max-h-[70vh]',
+    'overflow-y-auto',
+  );
+});

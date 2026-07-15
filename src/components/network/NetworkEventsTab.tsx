@@ -135,73 +135,82 @@ export function NetworkEventsTab({ session }: { session: DiagnosticSession }) {
       </div>
 
       <div className="grid items-start gap-4 2xl:grid-cols-[minmax(34rem,1fr)_minmax(32rem,44rem)]">
-        <Card className="overflow-x-auto p-0">
-          <table className="min-w-full text-left text-xs">
-            <thead className="bg-stone-50 text-stone-500">
-              <tr>
-                {['# / time', 'Event', 'Source', 'Response', 'Payload', 'Issues'].map((label) => (
-                  <th key={label} className="px-3 py-2 font-semibold">
-                    {label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((event) => {
-                const sequence = eventSequence.get(event.id) ?? 0;
-                const issueCount =
-                  event.warnings.length + (findingsByEvent.get(event.id)?.length ?? 0);
-                const active = event.id === selected?.id;
-                return (
-                  <tr
-                    key={event.id}
-                    aria-selected={active}
-                    tabIndex={0}
-                    onClick={() => setSelectedId(event.id)}
-                    onKeyDown={(keyEvent) => {
-                      if (keyEvent.key === 'Enter' || keyEvent.key === ' ') {
-                        keyEvent.preventDefault();
-                        setSelectedId(event.id);
-                      }
-                    }}
-                    className={`cursor-pointer border-t border-stone-100 align-top outline-none transition hover:bg-stone-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-oracle ${active ? 'bg-[#f7ebe8]' : ''}`}
-                  >
-                    <td className="whitespace-nowrap px-3 py-3">
-                      <span className="font-semibold">#{sequence}</span>
-                      <br />
-                      <span className="text-stone-500">
-                        {new Date(event.timestamp).toLocaleTimeString()}
-                      </span>
-                    </td>
-                    <td className="max-w-xs px-3 py-3 font-medium">
-                      {adapter.eventDisplayName(event)}
-                    </td>
-                    <td className="px-3 py-3">
-                      <Badge
-                        tone={event.sourceType === 'dcapi-browser-visible' ? 'info' : 'neutral'}
-                      >
-                        {event.sourceType}
-                      </Badge>
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-3">
-                      {event.requestMethod} · {event.statusCode || '—'}
-                    </td>
-                    <td className="px-3 py-3">{event.parameters.length} parameters</td>
-                    <td className="px-3 py-3">
-                      <Badge tone={issueCount ? 'warning' : 'success'}>
-                        {issueCount ? `${issueCount} issue${issueCount === 1 ? '' : 's'}` : 'Clear'}
-                      </Badge>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          {!filtered.length && (
-            <div className="p-8 text-center text-sm text-stone-500">
-              No events match the current filters.
-            </div>
-          )}
+        <Card className="overflow-hidden p-0">
+          <div
+            role="region"
+            aria-label="Captured event list"
+            tabIndex={0}
+            className="max-h-[70vh] overflow-auto outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-oracle"
+          >
+            <table className="min-w-full text-left text-xs">
+              <thead className="sticky top-0 z-10 bg-stone-50 text-stone-500 shadow-[0_1px_0_#e7e5e4]">
+                <tr>
+                  {['# / time', 'Event', 'Source', 'Response', 'Payload', 'Issues'].map((label) => (
+                    <th key={label} className="px-3 py-2 font-semibold">
+                      {label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((event) => {
+                  const sequence = eventSequence.get(event.id) ?? 0;
+                  const issueCount =
+                    event.warnings.length + (findingsByEvent.get(event.id)?.length ?? 0);
+                  const active = event.id === selected?.id;
+                  return (
+                    <tr
+                      key={event.id}
+                      aria-selected={active}
+                      tabIndex={0}
+                      onClick={() => setSelectedId(event.id)}
+                      onKeyDown={(keyEvent) => {
+                        if (keyEvent.key === 'Enter' || keyEvent.key === ' ') {
+                          keyEvent.preventDefault();
+                          setSelectedId(event.id);
+                        }
+                      }}
+                      className={`cursor-pointer border-t border-stone-100 align-top outline-none transition hover:bg-stone-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-oracle ${active ? 'bg-[#f7ebe8]' : ''}`}
+                    >
+                      <td className="whitespace-nowrap px-3 py-3">
+                        <span className="font-semibold">#{sequence}</span>
+                        <br />
+                        <span className="text-stone-500">
+                          {new Date(event.timestamp).toLocaleTimeString()}
+                        </span>
+                      </td>
+                      <td className="max-w-xs px-3 py-3 font-medium">
+                        {adapter.eventDisplayName(event)}
+                      </td>
+                      <td className="px-3 py-3">
+                        <Badge
+                          tone={event.sourceType === 'dcapi-browser-visible' ? 'info' : 'neutral'}
+                        >
+                          {event.sourceType}
+                        </Badge>
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-3">
+                        {event.requestMethod} · {event.statusCode || '—'}
+                      </td>
+                      <td className="px-3 py-3">{event.parameters.length} parameters</td>
+                      <td className="px-3 py-3">
+                        <Badge tone={issueCount ? 'warning' : 'success'}>
+                          {issueCount
+                            ? `${issueCount} issue${issueCount === 1 ? '' : 's'}`
+                            : 'Clear'}
+                        </Badge>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {!filtered.length && (
+              <div className="p-8 text-center text-sm text-stone-500">
+                No events match the current filters.
+              </div>
+            )}
+          </div>
         </Card>
         <EventDetails
           event={selected}
@@ -280,7 +289,11 @@ function EventDetails({
   const emptyParameters = event.parameters.filter(isEmpty);
 
   return (
-    <Card className="2xl:sticky 2xl:top-4">
+    <Card
+      aria-label={`Event ${sequence} payload details`}
+      tabIndex={0}
+      className="max-h-[70vh] overflow-y-auto outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-oracle 2xl:sticky 2xl:top-4"
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-wider text-stone-500">

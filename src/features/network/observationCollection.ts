@@ -15,6 +15,8 @@ export function mergeObservations(
   incoming: PlatformNetworkObservation[],
   limit = MAX_SESSION_OBSERVATIONS,
 ): { observations: PlatformNetworkObservation[]; dropped: number } {
+  // Map insertion order keeps the session chronological while replacing an overlapping HAR/live
+  // observation in place. The oldest evidence is discarded only after deduplication.
   const merged = new Map(current.map((event) => [event.id, event]));
   for (const event of incoming) merged.set(event.id, event);
   const observations = [...merged.values()];

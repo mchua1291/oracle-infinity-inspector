@@ -12,6 +12,7 @@ The extension is distributed as a ready-built GitHub release package and as sour
 - Separates Infinity libraries and support traffic from data collection events.
 - Deduplicates overlapping HAR and live-network observations using deterministic request identities.
 - Captures browser-visible `dcs.gif` and DC API v3 event payloads.
+- Continuously retains a bounded per-tab event journey across navigation, with pause, resume, and clear controls.
 - Classifies parameters using Oracle's documented parameter reference.
 - Highlights empty strings, explicit nulls, raw email addresses, and other QA concerns.
 - Validates documented Oracle commerce events and value formats.
@@ -107,6 +108,10 @@ See [Installation](docs/INSTALLATION.md) for updating, removal, Chrome instructi
 8. Open **Network Events** to inspect each complete payload and review empty/null values, custom parameters, and **Warnings**.
 9. Configure an expected domain profile in **Settings** when validating a known implementation.
 10. Export JSON for machine-readable evidence or Markdown for a readable report with discovery evidence and the contract scorecard.
+
+Event recording starts automatically when the DevTools panel opens and continues across navigation
+within the attached tab. Use **Pause events** when an interaction should not be added, or **Clear
+events** to remove the live history while retaining completed QA-step evidence.
 
 The toolbar popup is useful for a quick loader/status check, but complete network capture and reports require the DevTools panel.
 

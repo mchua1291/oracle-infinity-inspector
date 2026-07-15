@@ -168,8 +168,8 @@ export function SettingsTab({
       <Card>
         <h2 className="font-semibold">Session controls</h2>
         <Notice>
-          Reset clears in-memory observations for this inspected tab. It does not alter the page or
-          delete your saved settings.
+          Reset clears live observations and implementation evidence for this inspected tab. It does
+          not alter the page, delete saved settings, or remove completed QA-step evidence.
         </Notice>
         <div className="mt-4 flex flex-wrap gap-2">
           <Button

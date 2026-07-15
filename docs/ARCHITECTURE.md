@@ -19,7 +19,7 @@ The panel and popup use a locally implemented, Redwood-inspired token layer: Ora
 ```text
 active DevTools panel -> activate dormant content scanner
 Inspected DOM -> platform adapter loader scanners + tag-manager scanners -> service worker session cache -> DevTools panel store
-Inspected network -> adapter registry -> product parser/classifiers -> panel store
+Inspected network -> adapter registry -> product parser/classifiers -> panel store + bounded per-tab session cache
 Inspected network -> discovery-provider registry -> Google/Adobe/Tealium technology evidence -> panel store
 explicit Discovery capture -> read-only inspected-page probe -> bounded normalized data-layer snapshot -> comparison/reuse analysis
 panel store -> active platform adapter -> diagnostics/summaries -> tabs/export
@@ -73,7 +73,7 @@ The evaluator is a pure TypeScript module independent from React and Chrome APIs
 
 ## Session and persistence
 
-Full request observations and bodies are not written to long-term storage. They live in the panel store and a bounded `chrome.storage.session` per-tab cache until cleared, the tab closes, or the browser extension session ends. The current QA run and completed-step event snapshots use the same per-tab session storage so a scorecard can span page navigation. Discovery retains at most 10 snapshots in the active panel store so before/after comparison can span navigation while that DevTools context remains open; those snapshots are not written to `chrome.storage.local` or uploaded. The latest 1,000 live observations are retained; the UI reports when older entries are removed. Only user settings, expected profiles, saved QA plan definitions, and explicitly imported catalog entries use `chrome.storage.local`. Files are created only when the user acknowledges the raw-data handling notice and initiates an export.
+Full request observations and bodies are not written to long-term storage. They live in the panel store and a bounded `chrome.storage.session` per-tab cache until cleared, the tab closes, or the browser extension session ends. Navigation updates the inspected URL and route timeline without replacing the observation collection, so a single DevTools attachment continuously accumulates a multi-page journey. Pausing recording discards newly completed observations while leaving navigation and DOM synchronization active; resuming records only future completions. Clearing live events preserves completed QA-step evidence. The current QA run and completed-step event snapshots use the same per-tab session storage so a scorecard can span page navigation. Discovery retains at most 10 snapshots in the active panel store so before/after comparison can span navigation while that DevTools context remains open; those snapshots are not written to `chrome.storage.local` or uploaded. The latest 1,000 live observations are retained; the UI reports when older entries are removed. Only user settings, expected profiles, saved QA plan definitions, and explicitly imported catalog entries use `chrome.storage.local`. Files are created only when the user acknowledges the raw-data handling notice and initiates an export.
 
 ## Build structure
 

@@ -10,6 +10,8 @@ import { getPlatformIdentity } from '../features/platform/platformIdentityRegist
 const SESSION_KEY_PREFIX = 'oracleImplementationInspector.tabSession.';
 const MAX_BACKGROUND_TIMELINE = 500;
 const sessions = new Map<number, BackgroundTabSession>();
+// MV3 may restart this worker repeatedly. Each tab is restored from storage.session at most once per
+// worker lifetime so an older persisted copy cannot overwrite newer in-memory messages.
 const loadedTabs = new Set<number>();
 
 function storageKey(tabId: number): string {
@@ -68,6 +70,8 @@ async function getSession(tabId: number, pageUrl = ''): Promise<BackgroundTabSes
 }
 
 async function saveSession(tabId: number, session: BackgroundTabSession): Promise<void> {
+  // Memory is the live source of truth. storage.session is a resilience mirror that lets an MV3
+  // worker be suspended and restarted without losing the inspected tab's bounded evidence.
   sessions.set(tabId, session);
   loadedTabs.add(tabId);
   try {
@@ -165,12 +169,27 @@ async function handleMessage(
   if (message.type === 'DOM_SCAN' && sender.tab?.id !== undefined) {
     const tabId = sender.tab.id;
     const current = await getSession(tabId, message.pageUrl);
+    const pageChanged = Boolean(current.pageUrl && current.pageUrl !== message.pageUrl);
+    const routeEntry = pageChanged
+      ? {
+          id: `route:dom:${crypto.randomUUID()}`,
+          timestamp: message.scannedAt,
+          type: 'route-change' as const,
+          title: 'Inspected page URL changed',
+          detail: `${current.pageUrl} → ${message.pageUrl}`,
+        }
+      : undefined;
     await saveSession(tabId, {
       ...current,
       pageUrl: message.pageUrl,
       loaders: message.loaders,
       tagManagers: message.tagManagers,
       scannedAt: message.scannedAt,
+      // A new content-script instance is the most reliable full-navigation signal. The panel and
+      // DOM paths race by design, so append a marker only when this message changes the cached URL.
+      timeline: routeEntry
+        ? [...current.timeline, routeEntry].slice(-MAX_BACKGROUND_TIMELINE)
+        : current.timeline,
     });
     notify(tabId);
     return { ok: true };
@@ -193,6 +212,18 @@ async function handleMessage(
       ...current,
       observations: merged.observations,
       droppedObservationCount: current.droppedObservationCount + merged.dropped,
+    });
+    notify(message.tabId);
+    return { ok: true };
+  }
+  if (message.type === 'CLEAR_NETWORK_OBSERVATIONS') {
+    const current = await getSession(message.tabId);
+    await saveSession(message.tabId, {
+      ...current,
+      observations: [],
+      timeline: current.timeline.filter((entry) => entry.type === 'route-change'),
+      scannedAt: new Date().toISOString(),
+      droppedObservationCount: 0,
     });
     notify(message.tabId);
     return { ok: true };
@@ -230,13 +261,17 @@ async function handleMessage(
   }
   if (message.type === 'PANEL_PAGE_URL_UPDATED') {
     const current = await getSession(message.tabId, message.pageUrl);
+    const pageChanged = current.pageUrl !== message.pageUrl;
     await saveSession(message.tabId, {
       ...current,
       pageUrl: message.pageUrl,
       scannedAt: new Date().toISOString(),
-      timeline: message.entry
-        ? [...current.timeline, message.entry].slice(-MAX_BACKGROUND_TIMELINE)
-        : current.timeline,
+      // DOM scans, SPA route messages, and DevTools navigation callbacks may describe the same
+      // transition. Whichever updates the URL first owns the route marker.
+      timeline:
+        message.entry && pageChanged
+          ? [...current.timeline, message.entry].slice(-MAX_BACKGROUND_TIMELINE)
+          : current.timeline,
     });
     notify(message.tabId);
     return { ok: true };

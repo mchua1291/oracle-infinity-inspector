@@ -25,6 +25,12 @@ The popup cannot open a particular DevTools panel or capture complete network pa
 
 Opening the panel after page load can produce an incomplete session. A missing loader or request is not a valid defect until the page has been reloaded with DevTools open.
 
+Event recording begins automatically and the panel updates as tagged requests finish. Full-page and
+SPA navigation within the attached tab retain the earlier event history, producing one bounded
+multi-page journey. Use **Pause events** in the header to exclude later requests and **Resume events**
+to continue. **Clear events** removes live network history after confirmation, but retains completed
+QA-step evidence and saved plans. Requests completed while paused are intentionally not recovered.
+
 DevTools stays attached to one browser tab. Navigating within that tab is supported; switching to another tab requires opening DevTools on the other tab.
 
 ## Understand the sections
@@ -80,6 +86,11 @@ Each verified browser-visible collection event appears as an individual row. Sel
 
 Use the source, event-type, search, and warning filters to narrow a long session.
 
+The list updates automatically as interactions are tagged and remains available across navigation in
+the inspected tab. The event list and selected payload use independent scroll regions capped at 70%
+of the panel viewport, and the list keeps its column headers visible. Recording is bounded to the
+latest 1,000 observations; the header provides pause, resume, and clear controls for focused testing.
+
 ### QA Plan
 
 QA Plan converts an approved manual test plan into an executable local contract:
@@ -124,7 +135,7 @@ Settings are stored locally in extension storage.
 - Define the expected environment, account GUIDs, tag ID, `_ora.config`, and load mode for the current domain.
 - Import or export locally verified Oracle parameter catalog entries.
 - Saved QA plans are also retained in local extension storage and can be deleted from QA Plan.
-- Reset the current in-memory session without deleting saved settings.
+- Reset the current per-tab session without deleting saved settings or completed QA-step evidence.
 
 Imported catalog documentation links must point to trusted documentation. Do not import client payloads as catalog entries.
 

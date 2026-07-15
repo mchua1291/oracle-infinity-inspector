@@ -11,6 +11,8 @@ import type { PlatformLoaderObservation, TagManagerObservation } from '../featur
 
 const observed = new Map<string, PlatformLoaderObservation>();
 const observedTagManagers = new Map<string, TagManagerObservation>();
+// The manifest injects this isolated-world script broadly, but it remains dormant until the panel
+// or an explicit popup scan activates it for the developer-selected tab.
 let monitorEnabled = true;
 let lastUrl = location.href;
 let active = false;
@@ -67,6 +69,8 @@ function activateDomInspection(enableMutations: boolean) {
   monitorEnabled = enableMutations;
   lastUrl = location.href;
   if (!observer) {
+    // Mutation monitoring finds late tag injection and opportunistically notices SPA URLs without
+    // monkeypatching history APIs or any client-owned function.
     observer = new MutationObserver((mutations) => {
       if (!active) return;
       checkRouteChange();

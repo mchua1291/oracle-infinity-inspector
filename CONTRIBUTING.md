@@ -37,6 +37,21 @@ Run `npm run screenshots` after intentional user-interface changes. Documentatio
 - Keep shared browser, storage, UI, and export code platform-neutral. New product-specific endpoints, schemas, terminology, profile fields, and diagnostics belong behind a `PlatformAdapter`.
 - Add an adapter registration test and synthetic request/DOM fixtures for each supported platform generation.
 
+## Commenting standard
+
+Comments are part of the maintenance contract for code that crosses browser contexts or depends on
+non-obvious ordering. Add or update a concise comment when a change introduces or modifies:
+
+- Manifest V3 lifecycle, DevTools, service-worker, content-script, or storage behavior.
+- Deduplication, retention limits, navigation persistence, asynchronous sequencing, or race guards.
+- Security and privacy boundaries around inspected-page data or extension messaging.
+- A heuristic, documentation-derived rule, browser limitation, or deliberately conservative fallback.
+- Logic whose reason cannot be recovered reliably from its types, names, and focused tests.
+
+Explain **why the invariant exists** and what could break if it is removed. Do not narrate obvious
+syntax or duplicate the implementation in prose. Update stale comments in the same pull request,
+and pair behavioral comments with a regression test whenever the invariant is testable.
+
 ## Test data safety
 
 Never commit real client payloads, account GUIDs, email addresses, identifiers, secrets, private URLs, or exported QA reports. Fixtures must use clearly synthetic hosts and values. Block Oracle-shaped fixture requests during manual browser tests as described in [docs/QA_GUIDE.md](docs/QA_GUIDE.md).

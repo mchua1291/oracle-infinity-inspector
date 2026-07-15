@@ -61,7 +61,7 @@ function createQaEvent(
 
 export function createExportReport(
   session: DiagnosticSession,
-  extensionVersion = '0.6.0',
+  extensionVersion = '0.7.0',
   qaRun?: QaPlanRun,
   discovery?: DiscoveryState,
 ): ExportedDiagnosticReport {

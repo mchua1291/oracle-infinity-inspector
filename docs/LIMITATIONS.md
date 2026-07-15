@@ -58,7 +58,7 @@ Chrome HAR may omit request bodies, and compressed/binary bodies may not be read
 
 ## Long sessions
 
-The inspector retains the latest 1,000 network observations per tab to keep diagnostics and report previews responsive. When the limit is reached, older observations are removed and an informational warning records the count. Completed QA steps retain their own collection-event snapshots for scorecard export, which can increase session-storage use during large plans. If Chromium rejects a session-storage write, the active in-memory run continues only while its extension context remains alive. Use focused captures or separate exports for high-volume plans.
+The inspector automatically accumulates the latest 1,000 network observations across navigation in the attached tab. When the limit is reached, older observations are removed and an informational warning records the count. **Pause events** intentionally discards requests completed while paused; they are not recovered on resume. **Clear events** removes live observations but retains immutable evidence already attached to completed QA steps. Completed QA steps can increase session-storage use during large plans. If Chromium rejects a session-storage write, the active in-memory run continues only while its extension context remains alive. Use focused captures, pause/clear controls, or separate exports for high-volume plans.
 
 ## SPA routes
 
